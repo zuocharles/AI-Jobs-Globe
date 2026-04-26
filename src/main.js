@@ -26,10 +26,7 @@ const loadingBar = document.getElementById('loading-bar');
 const loadingStatus = document.getElementById('loading-status');
 const tooltipEl = document.getElementById('tooltip');
 
-const hudCompanies = document.getElementById('hud-companies');
-const hudOffices = document.getElementById('hud-offices');
-const hudJobs = document.getElementById('hud-jobs');
-const hudFrame = document.getElementById('hud-frame');
+// top-left HUD removed — title + counts are now only in the bottom stats bar.
 const hudTime = document.getElementById('hud-time');
 const hudLat = document.getElementById('hud-lat');
 const hudLon = document.getElementById('hud-lon');
@@ -87,11 +84,7 @@ async function main() {
 
   setLoading(90, 'CALIBRATING');
 
-  // ── HUD numbers ──────────────────────────────────────────────
-  hudCompanies.textContent = String(stats.companies).padStart(4, '0');
-  hudOffices.textContent = String(offices.length).padStart(4, '0');
-  hudJobs.textContent = String(stats.jobs).padStart(5, '0');
-
+  // ── Bottom stats counters (HUD top-left was removed) ─────────
   countUp(statJobs, stats.jobs);
   countUp(statCompanies, stats.companies);
   countUp(statCountries, stats.countries);
@@ -135,8 +128,7 @@ async function main() {
     const id = picked?.id?.id;
     const office = id && officeById.get(id);
     if (office) {
-      flyTo(viewer, office.lat, office.lon, 30_000, 1.4);
-      openPanel(office);
+      focusOffice(office);
     } else {
       closePanel();
     }
@@ -154,11 +146,16 @@ async function main() {
   });
 
   // Helper: when picking an office, prefer scope-mode if we have building
-  // data; otherwise fall back to the old fly-to + side panel.
+  // data; otherwise fall back to the old fly-to + side panel. When the user
+  // is already in scope mode, never yank the camera back to globe view —
+  // just update the panel (clicking a polyline you can see inside the scope
+  // shouldn't fly you OUT of it).
   function focusOffice(office) {
     const building = findBuildingForOffice(office);
     if (building) {
       enterScope(viewer, building);
+      openPanel(office);
+    } else if (isScopeActive()) {
       openPanel(office);
     } else {
       flyTo(viewer, office.lat, office.lon, 30_000, 1.6);
@@ -191,14 +188,7 @@ async function main() {
   // mode is currently entered manually via TARGETS-rail click. Re-enable
   // after we can interactively debug what's flying the camera down on init.
 
-  // ── HUD live updates (timestamp + camera coords + frame ms) ──
-  let lastFrameStart = performance.now();
-  viewer.scene.preRender.addEventListener(() => {
-    const now = performance.now();
-    hudFrame.textContent = `${Math.round(now - lastFrameStart)}ms`.padStart(4, ' ');
-    lastFrameStart = now;
-  });
-
+  // ── HUD live updates (timestamp + camera coords) ─────────────
   setInterval(() => {
     hudTime.textContent = new Date().toISOString().replace('.000', '').replace('Z', 'Z');
   }, 1000);

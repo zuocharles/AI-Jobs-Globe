@@ -379,7 +379,7 @@ input:focus-visible {
   right: 0;
   bottom: 0;
   z-index: 40;
-  width: 420px;
+  width: 340px;
   background: var(--bg-panel);
   border-left: var(--border-width) solid var(--border-default);
   display: flex;
@@ -462,6 +462,8 @@ input:focus-visible {
   font-weight: 600;
   letter-spacing: 0.05em;
   color: var(--text-primary);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .panel-company-meta {
@@ -470,6 +472,8 @@ input:focus-visible {
   color: var(--text-secondary);
   text-transform: uppercase;
   margin-top: 2px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .tier-badge {
@@ -512,6 +516,9 @@ input:focus-visible {
   text-decoration: none;
   font-size: 12px;
   display: block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.4;
 }
 
 .job-title:hover {
@@ -521,11 +528,12 @@ input:focus-visible {
 
 .job-meta {
   display: flex;
-  gap: var(--space-md);
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-md);
   font-size: 10px;
   letter-spacing: 0.1em;
   color: var(--text-secondary);
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .job-aitype {

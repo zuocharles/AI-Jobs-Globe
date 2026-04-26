@@ -14,9 +14,13 @@
  * width is wide enough. We use 4px which is comfortably pickable.
  */
 import {
+  Cartesian2,
   Cartesian3,
   Color,
+  LabelStyle,
+  NearFarScalar,
   PolylineGlowMaterialProperty,
+  VerticalOrigin,
 } from 'cesium';
 import { findBuildingForOffice } from './buildings.js';
 
@@ -103,6 +107,9 @@ export function renderSpikes(viewer, offices) {
 
       entities.add({
         id,
+        // Position drives the label/billboard projection — set it to the
+        // spike tip so the bracket marker floats above the polyline.
+        position: tipPos,
         polyline: {
           positions: [basePos, tipPos],
           // 4px wide — visible from any zoom + reliably pickable by mouse.
@@ -112,6 +119,21 @@ export function renderSpikes(viewer, offices) {
             glowPower: 0.3,
             taperPower: 0.5,
           }),
+        },
+        // Bilawal-style bracket marker — small cyan/blue/purple "[ ]" floating
+        // above each spike. Screen-space size, always visible, scales mildly
+        // by distance so it doesn't dominate the close-up scope view.
+        label: {
+          text: '[ ]',
+          font: '13px "JetBrains Mono", "Fira Code", monospace',
+          fillColor: color.withAlpha(0.95),
+          outlineColor: Color.BLACK.withAlpha(0.85),
+          outlineWidth: 2,
+          style: LabelStyle.FILL_AND_OUTLINE,
+          verticalOrigin: VerticalOrigin.BOTTOM,
+          pixelOffset: new Cartesian2(0, -4),
+          scaleByDistance: new NearFarScalar(5e3, 1.4, 5e7, 0.55),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         properties: {
           office_id: o.office_id,

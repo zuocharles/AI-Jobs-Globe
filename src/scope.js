@@ -68,7 +68,7 @@ export function enterScope(viewer, building) {
 
   state.active = true;
   state.building = building;
-  state.neighbours = buildingsNear(building.lat, building.lon, 5)
+  state.neighbours = buildingsNear(building.lat, building.lon, 50)
     .sort((a, b) => {
       // Stable order: by company name, then building name, so L/R is predictable.
       const c = (a.company || '').localeCompare(b.company || '');
