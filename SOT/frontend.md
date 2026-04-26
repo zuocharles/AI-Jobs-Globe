@@ -1,5 +1,10 @@
 # SOT / Frontend — UI/UX Layer
 
+## Recent Changes
+- 2026-04-26 — **PIVOT to Cesium + Google Photorealistic 3D Tiles** (away from the original Three.js + NASA-texture plan). The Bilawal-WORLDVIEW visual quality wasn't reachable with Three.js; Cesium + Google's photoreal tiles is the same stack he uses. Vanilla JS + Vite kept. Added scope-mode (close-up auto-focus camera per building) using `data/building_focus.json` (53 entries for top-30 employers; rank 31-80 currently being researched in background). Replaced cylinder spikes with hybrid (always-visible polylines + cyan `[ ]` bracket markers per office). Removed top-left HUD; consolidated scope chrome into a single horizontal bar. Job panel narrowed to 340 px with text wrapping. Live deploy: https://ai-jobs-globe.vercel.app — Vercel auto-deploys from `main`.
+
+---
+
 ## Product: AI Jobs Globe
 
 > "Everyone knows AI jobs are booming. Nobody knows *how* booming."
@@ -10,24 +15,33 @@ A 3D interactive globe visualizing 15,000+ AI job openings across 1,800 companie
 
 ---
 
-## Tech Stack
+## Tech Stack (current)
 
 | Layer | Choice | Why |
 |-------|--------|-----|
-| Bundler | **Vite** | Fastest DX for a 1-2 day MVP. No SSR needed for a showcase. |
-| Framework | **Vanilla JS + Three.js** | Maximum control over WebGL rendering. No React overhead for a single-view app. |
-| 3D Engine | **Three.js r160+** | Industry standard. GitHub Globe was built with it. |
-| Styling | **CSS (single file)** | Minimal UI chrome — the globe IS the UI. |
-| Database | **Supabase (PostgreSQL)** | Stores all jobs + companies. Frontend queries via `supabase-js` client. |
-| Deployment | **Vercel / Netlify (static)** | Zero-config deploy, global CDN, free tier. |
+| Bundler | **Vite 5** | Fastest DX, zero-config, ships clean ESM build (~62 KB gzipped JS). |
+| Framework | **Vanilla JS** (no React/Vue) | Single-view app, Cesium is huge already, no framework overhead needed. |
+| 3D Engine | **CesiumJS 1.124** | Same stack Bilawal Sidhu's WORLDVIEW uses. Built-in geographic projection + camera + scope/orbit primitives. |
+| Globe imagery | **Google Photorealistic 3D Tiles** (primary), **Cesium Ion / Bing** (fallback) | Real photogrammetric 3D earth — the entire visual reason we picked Cesium. Google API key on `.env` + Vercel envs. |
+| Bracket markers | `Entity.label` with text "[ ]" + screen-space `scaleByDistance` | Bilawal-style "scopable" markers floating over each office. |
+| Spike rendering | `Entity.polyline` with `PolylineGlowMaterialProperty` | Tall thin glowing column per office, height = log2(jobs). 4-px wide for hover-pickability. |
+| Building data | `data/building_focus.json` (static, frontend-bundled) | 53 entries (top-30 employers) compiled by background agent; rank 31-80 in flight. NOT in Supabase — keep it as a frontend asset for now (can migrate to a `buildings` table if we later need user editing). |
+| Styling | **Single `src/style.css`** with CSS variables | SIGINT terminal aesthetic, monospace, hard edges, cyan + amber accents. |
+| Database | **Supabase (PostgreSQL)** | Companies / offices / jobs queried via `supabase-js`. RLS public-read. |
+| Deployment | **Vercel** auto-deploy from GitHub `main` | 1-min build, global CDN, all `VITE_*` env vars wired (Supabase URL + anon key + Google Maps key). |
 
-### Key Dependencies
+### Key Dependencies (actual `package.json`)
 
 ```json
 {
-  "three": "^0.160.0",
-  "vite": "^5.0.0",
-  "@supabase/supabase-js": "^2.0.0"
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "cesium": "^1.124.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10",
+    "vite-plugin-cesium": "^1.2.23"
+  }
 }
 ```
 
@@ -201,62 +215,51 @@ All UI panels follow this pattern (reference: WORLDVIEW "DATA LAYERS" panel):
 
 ---
 
-### Globe Surface: Real Satellite Imagery
+### Globe Surface: Google Photorealistic 3D Tiles
 
-**Primary texture: NASA Earth at Night (city lights)**
+We stream the actual photogrammetric 3D earth — same source Bilawal Sidhu's WORLDVIEW uses. Cesium loads the tileset on demand from Google Maps Platform.
 
-| Texture | Source | Resolution | License |
-|---------|--------|------------|---------|
-| Earth at Night (primary) | [NASA VIIRS](https://svs.gsfc.nasa.gov/30003/) | 8192x4096 | Public domain |
-| Earth Day (alt) | [Solar System Scope](https://www.solarsystemscope.com/textures/) | 4096x2048 | CC BY 4.0 |
-| Bump map | Solar System Scope | 4096x2048 | CC BY 4.0 |
-| Specular map | Solar System Scope | 4096x2048 | CC BY 4.0 |
+| Source | Endpoint | Notes |
+|--------|----------|-------|
+| **Google Photorealistic 3D Tiles** | `https://tile.googleapis.com/v1/3dtiles/root.json?key=<KEY>` | Primary surface. API key in `VITE_GOOGLE_MAPS_API_KEY`. Map Tiles API enabled on GCP project 669037656528. Pay-as-you-go (~$0.02-$0.05 per casual session). |
+| Cesium Ion / Bing imagery | `IonImageryProvider.fromAssetId(2)` | Automatic fallback if Google tiles fail to load (e.g. API quota exceeded). |
 
-**Implementation:**
+**Implementation** (`src/globe.js`):
 ```javascript
-const nightTexture = textureLoader.load('textures/earth-night-8k.jpg');
-const bumpTexture = textureLoader.load('textures/earth-bump-4k.jpg');
-const specularTexture = textureLoader.load('textures/earth-specular-4k.jpg');
-
-const globeMaterial = new THREE.MeshPhongMaterial({
-  map: nightTexture,
-  bumpMap: bumpTexture,
-  bumpScale: 0.05,
-  specularMap: specularTexture,
-  specular: new THREE.Color(0x333333),
-  shininess: 15,
-});
+const tileset = await Cesium3DTileset.fromUrl(
+  `https://tile.googleapis.com/v1/3dtiles/root.json?key=${GOOGLE_KEY}`,
+  { showCreditsOnScreen: true, maximumScreenSpaceError: 16 }
+);
+scene.primitives.add(tileset);
+scene.globe.show = false;  // photoreal tiles ARE the surface now
 ```
 
 ---
 
-### Data Visualization Layers
+### Data Visualization Layers (current implementation)
 
-**Layer 1 -- Globe Base (satellite texture)**
-- Real NASA Earth at Night texture on a sphere
-- Bump map for terrain relief, specular map for ocean sheen
-- Slightly desaturated so data overlays pop
+**Layer 1 — Photoreal globe surface** — Google 3D Tiles. Renders actual buildings down to street level in major metros.
 
-**Layer 2 -- Heat Auras (surface glow)**
-- Circular gradient discs on the globe surface at each office location
-- Additive blending for glow that bleeds outward
-- Radius scales with `sqrt(job_count)`, color: white core > cyan > blue > transparent
-- Overlapping auras merge into brighter hotspots naturally (SF Bay Area, NYC corridor)
+**Layer 2 — Spike polylines** (`src/spikes.js`)
+- One `Entity.polyline` per office, base at office lat/lon, tip `400 km + log2(jobs+1) * 150 km` overhead
+- 4 px wide, `PolylineGlowMaterialProperty`, tier-coloured (cyan T1 / blue T2 / purple T3)
+- For top-30 offices that have a `building_focus.json` entry, the polyline base sits ON the actual building (e.g. 1455 Mission for OpenAI). For the rest, base is in a small ring around the city geocode to avoid stacking.
 
-**Layer 3 -- Spikes (3D columns)**
-- Tapered columns: `CylinderGeometry(radiusTop: 0.003, radiusBottom: 0.008, height)`
-- Height = `log2(job_count + 1) * 0.03`, max ~0.3 globe radii
-- Material: emissive + semi-transparent, Fresnel edge glow
-- Color by tier: cyan (T1), blue (T2), purple (T3)
-- Each spike has a subtle volumetric glow billboard behind it
+**Layer 3 — Bracket markers** (`src/spikes.js`)
+- One `Entity.label` with text `[ ]` per office, positioned at the polyline tip
+- Screen-space sized via `NearFarScalar` (1.4× near, 0.55× far)
+- `LabelStyle.FILL_AND_OUTLINE` with tier-coloured fill + black outline
+- The "Bilawal WORLDVIEW" scopable-marker look
 
-**Layer 4 -- Hover Effects**
-- Spike scales 1.3x, emissive cranks to white, sonar ring pulses from base
-- Stretch goal: thin arc lines to other offices of the same company
+**Layer 4 — Scope highlight ring** (`src/scope.js`, only visible in scope mode)
+- One `Entity.ellipse` (id `__scope_highlight__`) at the active building's lat/lon
+- Currently 40 m radius, ground-clamped, cyan with 0.45 alpha
+- Repositioned on cycle, hidden on exit
+- **Known issue (2026-04-26):** ring at altitude 0 gets occluded by tall photoreal buildings from the camera's typical -30° pitch — needs to grow to 80–100 m radius and possibly add a vertical halo.
 
-**Layer 5 -- Atmosphere**
-- Outer glow sphere (1.02x radius), Fresnel shader
-- Second subtle atmosphere at 1.05x for depth
+**Layer 5 — Hover state**
+- Hovered polyline pumps width 4 → 7 px and material → white glow
+- Tooltip DOM element follows cursor with `[Company] / [Location] · [N jobs] · T[tier]`
 
 ---
 
@@ -456,77 +459,75 @@ Single-screen app. Minimum viewport: 1280x720.
 
 ---
 
-## File Structure
+## File Structure (current)
 
 ```
 ai-jobs-globe/
-├── index.html
-├── vite.config.js
-├── package.json
+├── index.html                       # Single-page shell + DOM mounts (HUD, topbar, panels, scope-bar)
+├── vite.config.js                   # Vite + vite-plugin-cesium (CESIUM_BASE_URL, asset copy)
+├── package.json                     # Cesium 1.124, supabase-js, vite, vite-plugin-cesium
+├── .env / .env.local                # Supabase keys + VITE_GOOGLE_MAPS_API_KEY (gitignored)
 ├── public/
-│   ├── textures/
-│   │   ├── earth-night-4k.jpg       # NASA Earth at Night (primary)
-│   │   ├── earth-day-4k.jpg         # Solar System Scope day texture (alt)
-│   │   ├── earth-bump-4k.jpg        # Terrain bump map
-│   │   ├── earth-specular-4k.jpg    # Ocean specular map
-│   │   └── earth-clouds-4k.png      # Cloud layer (optional, transparent)
-│   ├── logos/                        # 1,594 company logo PNGs (128px)
-│   └── sprites/
-│       └── glow.png                  # Soft circle sprite for spike glow
+│   └── logos/                       # 1,594 company logo PNGs (128px) — served by Vercel CDN
+├── data/                            # NOT in Supabase — frontend-bundled static data
+│   ├── building_focus.json          # 53 entries for top-30 employers (Apple Park, Googleplex, etc.)
+│   ├── building_focus_extended.json # 75 entries for ranks 31-80 (Meta, Salesforce, Tesla, etc.)
+│   ├── _research_brief.md           # Top-30 brief used by background agent (audit log)
+│   └── _research_brief_v2.md        # Rank-31-80 brief
 ├── src/
-│   ├── main.js                       # Entry: init, load textures, start render
-│   ├── globe.js                      # Globe mesh with satellite texture + atmosphere
-│   ├── spikes.js                     # InstancedMesh for spikes + heat auras
-│   ├── interaction.js                # Raycaster, hover, click
-│   ├── panel.js                      # Detail panel (DOM)
-│   ├── tooltip.js                    # CSS2DRenderer tooltip
-│   ├── controls.js                   # OrbitControls, zoom limits
-│   ├── filters.js                    # Filter state, spike visibility
-│   ├── data.js                       # Supabase client, data fetching
-│   ├── shaders/
-│   │   ├── atmosphere.vert           # Atmosphere vertex shader
-│   │   ├── atmosphere.frag           # Fresnel halo fragment shader
-│   │   ├── heat-aura.vert            # Heat disc vertex shader
-│   │   └── heat-aura.frag            # Additive glow fragment shader
-│   └── utils/
-│       ├── geo.js                    # lat/lon → 3D vector
-│       ├── colors.js                 # Color ramp / lerp
-│       └── tween.js                  # Camera animation helpers
-└── style.css
+│   ├── main.js                      # Entry: init Cesium, fetch data, wire interaction
+│   ├── globe.js                     # Cesium Viewer + Google 3D Tiles + camera limits
+│   ├── data.js                      # Supabase client + paginated fetchGlobeData/Stats/Jobs/Companies
+│   ├── spikes.js                    # Polylines + bracket markers per office
+│   ├── buildings.js                 # Loads building_focus*.json; findBuildingForOffice + buildingsNear + nearestBuilding
+│   ├── scope.js                     # Scope-mode state machine: enter / exit / cycle / highlight ring
+│   ├── panel.js                     # Right-edge detail panel with job listings
+│   ├── topbar.js                    # Search input + Supabase autocomplete (slated for replacement — see Open Items)
+│   ├── companies-rail.js            # Left-rail TARGETS list (top 30 by jobs, with logos)
+│   └── style.css                    # Single CSS file, all design-system tokens + components
+└── (no shaders, no utils — Cesium handles geo math + camera animation)
 ```
 
 ---
 
-## Milestone Plan (1-2 day MVP, Desktop Only)
+## Current State (2026-04-26)
 
-### Day 1 (8 hours)
-| Hour | Task |
-|------|------|
-| 0-1 | Vite setup, Three.js scene, camera, OrbitControls, starfield background |
-| 1-2 | Download NASA Earth at Night texture. Globe sphere with satellite texture + bump map |
-| 2-3 | Atmosphere halo (Fresnel shader) |
-| 3-4 | Load data from Supabase (or static JSON fallback). Convert lat/lon → 3D positions |
-| 4-6 | InstancedMesh for spikes (tapered cones, height = job count, tier color gradient) |
-| 6-7 | InstancedMesh for heat auras (additive blend discs) |
-| 7-8 | Raycaster + hover: spike glow + tooltip |
-
-### Day 2 (8 hours)
-| Hour | Task |
-|------|------|
-| 0-1 | Click → camera fly-to + detail panel with job list |
-| 1-2 | Top bar: search with autocomplete, filter dropdowns |
-| 2-3 | Stats bar with animated counters |
-| 3-4 | Logo loading in tooltip + panel (with favicon fallback) |
-| 4-5 | Polish: hover ring pulse, spike glow sprites, smooth transitions |
-| 5-6 | Progressive texture loading (dark sphere → satellite swap) |
-| 6-7 | Loading screen, deploy to Vercel |
-| 7-8 | Test, screenshot, record demo video for submission |
+| Layer | Status |
+|---|---|
+| Vite + Cesium + Supabase scaffold | ✅ shipped |
+| Google Photorealistic 3D Tiles loaded with Cesium Ion fallback | ✅ shipped |
+| Polyline spike per office (city-ring fallback for offices without building data) | ✅ shipped |
+| Cyan `[ ]` bracket markers per office | ✅ shipped (known issue: appearing at polyline TIP not building base — fix in flight) |
+| Hover tooltip with company / location / job count / tier | ✅ shipped |
+| Click → opens right-side detail panel with real job listings | ✅ shipped |
+| TARGETS rail (top 30 by jobs, with logos, click-to-fly) | ✅ shipped |
+| Scope mode (close-up auto-focus on photoreal building) | ✅ shipped — manual entry only |
+| `data/building_focus.json` (top 30, 53 entries) | ✅ shipped |
+| `data/building_focus_extended.json` (ranks 31-80, 75 entries) | ✅ shipped — buildings.js loader needs to merge it (1-line change) |
+| Camera limits: 200m floor, 30,000km ceiling, no inertia, collision detection | ✅ shipped |
+| HUD top-right with timestamp + camera lat/lon | ✅ shipped (slated for removal — see Open Items) |
+| EMERGENCES LABS HUD top-left | ❌ deleted (was overlapping scope bar) |
+| Bottom stats bar with animated count-up | ✅ shipped |
+| Bottom city pills (SF / NYC / London / Tokyo / Beijing / Tel Aviv) | ✅ shipped — slated for "enter scope on top company" upgrade |
+| Search bar in topbar | ✅ shipped (slated for replacement with scope-only dropdown) |
 
 ---
 
-## Open Questions
+## Open Items (post-shipping cleanup)
 
-1. **Earth at Night vs Earth Day**: night texture is inherently dark-themed and gorgeous, but terrain detail is low (it's mostly black with city lights). Day texture shows geography but needs to be darkened. Could also do a hybrid: day texture with low brightness + city lights as emissive overlay.
-2. **globe.gl shortcut**: globe.gl has built-in satellite textures, hex bins, and point layers. Faster to ship but less visual control. Worth prototyping both approaches in hour 1 to compare.
-3. **Spike vs bar shape**: tapered cones look more organic, but rectangular bars (like the population density example) read more clearly as "data". Test both.
-4. **Connection arcs**: showing lines between offices of the same company (like GitHub's PR arcs) would be stunning but is a Day 3 feature.
+These are items Charles flagged in the 2026-04-26 review session but aren't yet in `main`. Each links to its corresponding implementation thread.
+
+1. **Building highlight ring invisible in scope view** — current 40 m ground-clamped ellipse gets occluded by the photoreal building geometry from the camera's typical -30° pitch. Fix: enlarge to 80–100 m + raise to 5 m above ground + `disableDepthTestDistance` so it shows through walls within scope range.
+2. **Bracket markers anchored to polyline tip (in space) instead of building base** — they appear "stuck on screen" because they're at altitude 400 km–1900 km. Fix: position them at `basePos` (the office building) with a small `pixelOffset`.
+3. **Cycle order is alphabetical (Amazon ↔ Microsoft only in SF)** — needs to sort by job count (or another meaningful priority) and the rank-31-80 data needs to be loaded so SF actually has more than 2 buildings to cycle through.
+4. **Detail panel UX** — Charles wants the right panel to behave more like a hover-triggered TARGETS-style component instead of a sticky modal. Semantics TBD.
+5. **City pills → enter scope on top-jobs company in that city** instead of `flyTo(city center)`.
+6. **Replace search bar + REC HUD with a scope-only dropdown** — scope-able companies only (those with building data).
+
+These are tracked in the corresponding thread + plan file; implementation is incremental.
+
+---
+
+## Reference Visuals
+
+Bilawal Sidhu's WORLDVIEW remains the primary visual target (see `Reference Visuals & Inspiration` section above). The bracket markers `[ ]`, the close-up camera-orbit-per-building, and the cyan/amber colour palette are all tracking that reference.

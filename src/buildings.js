@@ -11,8 +11,12 @@
  * doesn't need a runtime fetch.
  */
 import buildingFocusData from '../data/building_focus.json';
+import buildingFocusExtended from '../data/building_focus_extended.json';
 
-const buildings = buildingFocusData.buildings || [];
+const buildings = [
+  ...(buildingFocusData.buildings || []),
+  ...(buildingFocusExtended.buildings || []),
+];
 
 /**
  * Lookup helpers. We index by:
