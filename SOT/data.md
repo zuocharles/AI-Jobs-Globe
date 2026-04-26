@@ -6,6 +6,7 @@
 
 ## Recent Changes
 - 2026-04-26 — added `data/building_focus.json` with 53 building entries (lat/lon + camera framing) for the top 30 employers, supporting Cesium scope-mode auto-focus. 30 HQs covered; ~23 secondary major hubs included. 4 entries flagged low-confidence (Prolific London exact suite, Invisible remote-only, Binance Dubai/Paris non-fixed HQ); 1 medium (Anthropic, Ro NYC, Deloitte UK, RBC NY, TCS NA, Capital One NYC). Compiled from canonical training-knowledge sources (Wikipedia infoboxes, official company location pages); live web verification was unavailable in the research environment, so a manual audit is recommended before production use.
+- 2026-04-26 — attempted to extend coverage to ranks 31–80 via background agent (brief at `data/_research_brief_v2.md`). Agent hit the org monthly usage limit before producing output — `data/building_focus_extended.json` does NOT exist yet. **Next session:** pick one of (a) re-run after limit reset, (b) write a Node script using Google Places API on the same GCP project (669037656528) that already hosts Map Tiles — ~$17 for ~1000 lookups, fastest path to authoritative data, or (c) hand-curate top 50 in foreground.
 
 ---
 
