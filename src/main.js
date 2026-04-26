@@ -17,6 +17,8 @@ import { renderSpikes, setHover } from './spikes.js';
 import { openPanel, closePanel } from './panel.js';
 import { initSearch } from './topbar.js';
 import { initCompanyRail } from './companies-rail.js';
+import { findBuildingForOffice } from './buildings.js';
+import { enterScope, exitScope, cycle, isScopeActive } from './scope.js';
 
 // ── DOM refs ─────────────────────────────────────────────────────
 const loadingEl = document.getElementById('loading');
@@ -151,17 +153,43 @@ async function main() {
     });
   });
 
+  // Helper: when picking an office, prefer scope-mode if we have building
+  // data; otherwise fall back to the old fly-to + side panel.
+  function focusOffice(office) {
+    const building = findBuildingForOffice(office);
+    if (building) {
+      enterScope(viewer, building);
+      openPanel(office);
+    } else {
+      flyTo(viewer, office.lat, office.lon, 30_000, 1.6);
+      openPanel(office);
+    }
+  }
+
   // ── Search ───────────────────────────────────────────────────
-  initSearch((office) => {
-    flyTo(viewer, office.lat, office.lon, 30_000, 1.4);
-    openPanel(office);
-  }, officeById);
+  initSearch(focusOffice, officeById);
 
   // ── Top companies quick-jump rail ────────────────────────────
-  initCompanyRail(officeById, (office) => {
-    flyTo(viewer, office.lat, office.lon, 30_000, 1.6);
-    openPanel(office);
+  initCompanyRail(officeById, focusOffice);
+
+  // ── Scope-mode key handlers + exit button ────────────────────
+  document.addEventListener('keydown', (e) => {
+    if (!isScopeActive()) return;
+    if (e.key === 'ArrowLeft') { e.preventDefault(); cycle(viewer, -1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); cycle(viewer, +1); }
+    else if (e.key === 'Escape') { e.preventDefault(); exitScope(viewer); closePanel(); }
   });
+  document.getElementById('scope-exit')?.addEventListener('click', () => {
+    exitScope(viewer);
+    closePanel();
+  });
+  document.getElementById('scope-prev')?.addEventListener('click', () => cycle(viewer, -1));
+  document.getElementById('scope-next')?.addEventListener('click', () => cycle(viewer, +1));
+
+  // Auto-scope (when camera drops below 3km near a known building) is
+  // disabled in this checkpoint — was firing erroneously on boot. Scope
+  // mode is currently entered manually via TARGETS-rail click. Re-enable
+  // after we can interactively debug what's flying the camera down on init.
 
   // ── HUD live updates (timestamp + camera coords + frame ms) ──
   let lastFrameStart = performance.now();

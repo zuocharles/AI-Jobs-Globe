@@ -640,6 +640,99 @@ input:focus-visible {
 }
 
 /* ============================================================
+   Scope mode (close-up auto-focus camera)
+   Compact horizontal bar at top, sits above the topbar but below the HUD.
+   Single line, never overlaps the left TARGETS rail.
+   ============================================================ */
+.scope-bar {
+  position: fixed;
+  top: var(--space-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 26;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: var(--bg-panel);
+  border: var(--border-width) solid var(--cyan);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  max-width: calc(100vw - 64px);
+  box-shadow: 0 0 16px rgba(0, 255, 255, 0.2);
+}
+
+.scope-bar .scope-nav,
+.scope-bar .scope-exit {
+  font-family: inherit;
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  padding: var(--space-sm) var(--space-md);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  cursor: pointer;
+  transition: background 100ms linear, color 100ms linear;
+}
+
+.scope-bar .scope-nav:first-child {
+  border-left: none;
+}
+
+.scope-bar .scope-nav:hover {
+  background: var(--bg-panel-hover);
+  color: var(--cyan);
+}
+
+.scope-bar .scope-exit {
+  color: var(--cyan);
+  font-weight: 700;
+  text-shadow: 0 0 4px rgba(0, 255, 255, 0.5);
+}
+
+.scope-bar .scope-exit:hover {
+  background: var(--cyan);
+  color: var(--bg-space);
+  text-shadow: none;
+}
+
+.scope-bar .scope-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
+  min-width: 0;
+  max-width: 540px;
+  overflow: hidden;
+}
+
+.scope-bar .scope-co {
+  color: var(--cyan);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-shadow: 0 0 4px rgba(0, 255, 255, 0.4);
+  flex-shrink: 0;
+}
+
+.scope-bar .scope-meta {
+  color: var(--text-secondary);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scope-bar .scope-sep {
+  color: var(--text-dim);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
    Loading overlay
    ============================================================ */
 .loading-overlay {

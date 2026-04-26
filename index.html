@@ -98,6 +98,15 @@
   <!-- Hover tooltip. Positioned absolutely in JS. -->
   <div id="tooltip" class="tooltip" hidden></div>
 
+  <!-- Scope-mode chrome — single compact horizontal bar at the top.
+       Hidden until enterScope() runs. -->
+  <div id="scope-bar" class="scope-bar" hidden>
+    <button id="scope-prev" class="scope-nav" title="Previous building (←)">[ &lt; PREV ]</button>
+    <div id="scope-label" class="scope-label"></div>
+    <button id="scope-next" class="scope-nav" title="Next building (→)">[ NEXT &gt; ]</button>
+    <button id="scope-exit" class="scope-exit">[ EXIT SCOPE ]</button>
+  </div>
+
   <!-- Loading overlay -->
   <div id="loading" class="loading-overlay">
     <div class="loading-text">LOADING SATELLITE FEED</div>
