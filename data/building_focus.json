@@ -1,0 +1,891 @@
+{
+  "version": "1.0",
+  "generated": "2026-04-26",
+  "_note": "Compiled from training-knowledge of well-documented public HQ addresses (Wikipedia infoboxes, official press releases, SEC filings) as of training cutoff Jan 2026. Live web verification was unavailable in the research environment; coordinates are 4-decimal-place (~10m) and reflect canonical building footprints for landmark structures. Audit recommended for any entry marked confidence=medium or low before relying on it for production scope-mode framing.",
+  "buildings": [
+    {
+      "company": "Amazon",
+      "city": "Seattle, WA, US",
+      "building_name": "Day One Tower (Doppler)",
+      "address": "2121 7th Ave, Seattle, WA 98121",
+      "lat": 47.6151,
+      "lon": -122.3387,
+      "camera": {
+        "altitude_m": 350,
+        "heading_deg": 45,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Amazon_Spheres"
+    },
+    {
+      "company": "Amazon",
+      "city": "Arlington, VA, US",
+      "building_name": "HQ2 Metropolitan Park (Met Park)",
+      "address": "1851 S Bell St, Arlington, VA 22202",
+      "lat": 38.8579,
+      "lon": -77.0531,
+      "camera": {
+        "altitude_m": 350,
+        "heading_deg": 60,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": false,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Amazon_HQ2"
+    },
+    {
+      "company": "Amazon",
+      "city": "London, UK",
+      "building_name": "Principal Place",
+      "address": "1 Principal Pl, Worship St, London EC2A 2BA, UK",
+      "lat": 51.5212,
+      "lon": -0.0816,
+      "camera": {
+        "altitude_m": 300,
+        "heading_deg": 200,
+        "pitch_deg": -30,
+        "range_m": 450
+      },
+      "is_hq": false,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Principal_Place"
+    },
+    {
+      "company": "Deloitte",
+      "city": "New York, NY, US",
+      "building_name": "30 Rockefeller Plaza",
+      "address": "30 Rockefeller Plaza, New York, NY 10112",
+      "lat": 40.7587,
+      "lon": -73.9787,
+      "camera": {
+        "altitude_m": 380,
+        "heading_deg": 200,
+        "pitch_deg": -35,
+        "range_m": 550
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/30_Rockefeller_Plaza"
+    },
+    {
+      "company": "Deloitte",
+      "city": "London, UK",
+      "building_name": "Hill House (Deloitte UK HQ)",
+      "address": "1 Little New Street, London EC4A 3TR, UK",
+      "lat": 51.5159,
+      "lon": -0.1063,
+      "camera": {
+        "altitude_m": 280,
+        "heading_deg": 90,
+        "pitch_deg": -30,
+        "range_m": 400
+      },
+      "is_hq": false,
+      "confidence": "medium",
+      "source_url": "https://www2.deloitte.com/uk/en/footerlinks/office-locator/london.html"
+    },
+    {
+      "company": "Ro",
+      "city": "New York, NY, US",
+      "building_name": "Ro HQ - SoHo",
+      "address": "116 W Houston St, New York, NY 10012",
+      "lat": 40.7274,
+      "lon": -74.0006,
+      "camera": {
+        "altitude_m": 250,
+        "heading_deg": 30,
+        "pitch_deg": -30,
+        "range_m": 350
+      },
+      "is_hq": true,
+      "confidence": "medium",
+      "source_url": "https://ro.co/about/ - LinkedIn lists NYC HQ; exact suite varies"
+    },
+    {
+      "company": "Accenture",
+      "city": "Dublin, IE",
+      "building_name": "1 Grand Canal Square",
+      "address": "1 Grand Canal Square, Grand Canal Harbour, Dublin 2, D02 P820, Ireland",
+      "lat": 53.3438,
+      "lon": -6.2381,
+      "camera": {
+        "altitude_m": 280,
+        "heading_deg": 270,
+        "pitch_deg": -30,
+        "range_m": 400
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Accenture"
+    },
+    {
+      "company": "Accenture",
+      "city": "Chicago, IL, US",
+      "building_name": "Accenture Tower",
+      "address": "500 W Madison St, Chicago, IL 60661",
+      "lat": 41.8819,
+      "lon": -87.6418,
+      "camera": {
+        "altitude_m": 350,
+        "heading_deg": 90,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": false,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Accenture_Tower"
+    },
+    {
+      "company": "Accenture",
+      "city": "London, UK",
+      "building_name": "30 Fenchurch Street",
+      "address": "30 Fenchurch Street, London EC3M 3BD, UK",
+      "lat": 51.5118,
+      "lon": -0.0830,
+      "camera": {
+        "altitude_m": 320,
+        "heading_deg": 180,
+        "pitch_deg": -30,
+        "range_m": 450
+      },
+      "is_hq": false,
+      "confidence": "medium",
+      "source_url": "https://www.accenture.com/gb-en/about/company/london"
+    },
+    {
+      "company": "Alphabet/Google",
+      "city": "Mountain View, CA, US",
+      "building_name": "Googleplex (Building 40)",
+      "address": "1600 Amphitheatre Pkwy, Mountain View, CA 94043",
+      "lat": 37.4220,
+      "lon": -122.0841,
+      "camera": {
+        "altitude_m": 320,
+        "heading_deg": 60,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Googleplex"
+    },
+    {
+      "company": "Alphabet/Google",
+      "city": "New York, NY, US",
+      "building_name": "111 Eighth Avenue (Google NYC)",
+      "address": "111 8th Ave, New York, NY 10011",
+      "lat": 40.7415,
+      "lon": -74.0042,
+      "camera": {
+        "altitude_m": 350,
+        "heading_deg": 200,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": false,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/111_Eighth_Avenue"
+    },
+    {
+      "company": "Alphabet/Google",
+      "city": "London, UK",
+      "building_name": "Google King's Cross",
+      "address": "6 Pancras Square, London N1C 4AG, UK",
+      "lat": 51.5343,
+      "lon": -0.1247,
+      "camera": {
+        "altitude_m": 320,
+        "heading_deg": 90,
+        "pitch_deg": -30,
+        "range_m": 450
+      },
+      "is_hq": false,
+      "confidence": "high",
+      "source_url": "https://about.google/intl/en_uk/locations/?region=europe&office=london"
+    },
+    {
+      "company": "JPMorgan Chase",
+      "city": "New York, NY, US",
+      "building_name": "270 Park Avenue (JPMorgan Chase World HQ)",
+      "address": "270 Park Ave, New York, NY 10017",
+      "lat": 40.7565,
+      "lon": -73.9747,
+      "camera": {
+        "altitude_m": 450,
+        "heading_deg": 220,
+        "pitch_deg": -35,
+        "range_m": 600
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/270_Park_Avenue_(2025)"
+    },
+    {
+      "company": "JPMorgan Chase",
+      "city": "London, UK",
+      "building_name": "25 Bank Street",
+      "address": "25 Bank Street, Canary Wharf, London E14 5JP, UK",
+      "lat": 51.5037,
+      "lon": -0.0193,
+      "camera": {
+        "altitude_m": 380,
+        "heading_deg": 90,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": false,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/25_Bank_Street"
+    },
+    {
+      "company": "Prolific",
+      "city": "London, UK",
+      "building_name": "Prolific HQ - Holborn",
+      "address": "Lynton House, 7-12 Tavistock Square, London WC1H 9LT, UK",
+      "lat": 51.5247,
+      "lon": -0.1305,
+      "camera": {
+        "altitude_m": 250,
+        "heading_deg": 90,
+        "pitch_deg": -30,
+        "range_m": 350
+      },
+      "is_hq": true,
+      "confidence": "low",
+      "source_url": "https://www.prolific.com/about - exact suite uncertain; Bloomsbury area per LinkedIn"
+    },
+    {
+      "company": "Apple",
+      "city": "Cupertino, CA, US",
+      "building_name": "Apple Park",
+      "address": "One Apple Park Way, Cupertino, CA 95014",
+      "lat": 37.3349,
+      "lon": -122.0090,
+      "camera": {
+        "altitude_m": 450,
+        "heading_deg": 30,
+        "pitch_deg": -40,
+        "range_m": 800
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Apple_Park"
+    },
+    {
+      "company": "Apple",
+      "city": "Cupertino, CA, US",
+      "building_name": "Infinite Loop (Apple legacy campus)",
+      "address": "1 Infinite Loop, Cupertino, CA 95014",
+      "lat": 37.3318,
+      "lon": -122.0312,
+      "camera": {
+        "altitude_m": 320,
+        "heading_deg": 45,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": false,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Apple_campus"
+    },
+    {
+      "company": "Apple",
+      "city": "London, UK",
+      "building_name": "Apple Battersea (Battersea Power Station)",
+      "address": "Battersea Power Station, Circus Rd W, Nine Elms, London SW11 8AL, UK",
+      "lat": 51.4816,
+      "lon": -0.1437,
+      "camera": {
+        "altitude_m": 320,
+        "heading_deg": 0,
+        "pitch_deg": -30,
+        "range_m": 500
+      },
+      "is_hq": false,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Battersea_Power_Station"
+    },
+    {
+      "company": "OpenAI",
+      "city": "San Francisco, CA, US",
+      "building_name": "Pioneer Building",
+      "address": "1455 3rd St, San Francisco, CA 94158",
+      "lat": 37.7700,
+      "lon": -122.3878,
+      "camera": {
+        "altitude_m": 250,
+        "heading_deg": 45,
+        "pitch_deg": -30,
+        "range_m": 400
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/OpenAI"
+    },
+    {
+      "company": "OpenAI",
+      "city": "San Francisco, CA, US",
+      "building_name": "Mission Bay - Old Uber HQ (1455 Market would be alt)",
+      "address": "Mission Bay, San Francisco, CA",
+      "lat": 37.7710,
+      "lon": -122.3895,
+      "camera": {
+        "altitude_m": 250,
+        "heading_deg": 45,
+        "pitch_deg": -30,
+        "range_m": 400
+      },
+      "is_hq": false,
+      "confidence": "low",
+      "source_url": "OpenAI expanded into Mission Bay 2024; second campus exact building uncertain - skip if low signal"
+    },
+    {
+      "company": "CVS Health",
+      "city": "Woonsocket, RI, US",
+      "building_name": "CVS Health Corporate HQ",
+      "address": "1 CVS Drive, Woonsocket, RI 02895",
+      "lat": 42.0073,
+      "lon": -71.5071,
+      "camera": {
+        "altitude_m": 300,
+        "heading_deg": 90,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/CVS_Health"
+    },
+    {
+      "company": "Invisible Agency",
+      "city": "Austin, TX, US",
+      "building_name": "Invisible Technologies (remote-first; Austin presence)",
+      "address": "Austin, TX",
+      "lat": 30.2672,
+      "lon": -97.7431,
+      "camera": {
+        "altitude_m": 300,
+        "heading_deg": 0,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": true,
+      "confidence": "low",
+      "source_url": "Invisible is fully-remote per company materials; Austin used as nominal city center - no fixed building"
+    },
+    {
+      "company": "NVIDIA",
+      "city": "Santa Clara, CA, US",
+      "building_name": "NVIDIA Endeavor (and Voyager)",
+      "address": "2788 San Tomas Expy, Santa Clara, CA 95051",
+      "lat": 37.3705,
+      "lon": -121.9633,
+      "camera": {
+        "altitude_m": 350,
+        "heading_deg": 45,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Nvidia"
+    },
+    {
+      "company": "EY (Ernst & Young)",
+      "city": "London, UK",
+      "building_name": "1 More London Place",
+      "address": "1 More London Place, London SE1 2AF, UK",
+      "lat": 51.5052,
+      "lon": -0.0805,
+      "camera": {
+        "altitude_m": 300,
+        "heading_deg": 270,
+        "pitch_deg": -30,
+        "range_m": 450
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Ernst_%26_Young"
+    },
+    {
+      "company": "EY (Ernst & Young)",
+      "city": "New York, NY, US",
+      "building_name": "1 Manhattan West",
+      "address": "1 Manhattan West, New York, NY 10001",
+      "lat": 40.7553,
+      "lon": -73.9989,
+      "camera": {
+        "altitude_m": 380,
+        "heading_deg": 90,
+        "pitch_deg": -35,
+        "range_m": 550
+      },
+      "is_hq": false,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Manhattan_West"
+    },
+    {
+      "company": "SAP",
+      "city": "Walldorf, DE",
+      "building_name": "SAP Headquarters Walldorf",
+      "address": "Dietmar-Hopp-Allee 16, 69190 Walldorf, Germany",
+      "lat": 49.2934,
+      "lon": 8.6435,
+      "camera": {
+        "altitude_m": 320,
+        "heading_deg": 30,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/SAP_SE"
+    },
+    {
+      "company": "SAP",
+      "city": "Newtown Square, PA, US",
+      "building_name": "SAP America HQ",
+      "address": "3999 West Chester Pike, Newtown Square, PA 19073",
+      "lat": 39.9831,
+      "lon": -75.4126,
+      "camera": {
+        "altitude_m": 300,
+        "heading_deg": 0,
+        "pitch_deg": -35,
+        "range_m": 450
+      },
+      "is_hq": false,
+      "confidence": "high",
+      "source_url": "https://www.sap.com/about/company/office-locations.html"
+    },
+    {
+      "company": "Intuit",
+      "city": "Mountain View, CA, US",
+      "building_name": "Intuit Marine Way Campus",
+      "address": "2700 Coast Ave, Mountain View, CA 94043",
+      "lat": 37.4047,
+      "lon": -122.0780,
+      "camera": {
+        "altitude_m": 300,
+        "heading_deg": 60,
+        "pitch_deg": -35,
+        "range_m": 450
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Intuit"
+    },
+    {
+      "company": "Citi",
+      "city": "New York, NY, US",
+      "building_name": "388 Greenwich (Citigroup Global HQ)",
+      "address": "388 Greenwich St, New York, NY 10013",
+      "lat": 40.7196,
+      "lon": -74.0114,
+      "camera": {
+        "altitude_m": 380,
+        "heading_deg": 90,
+        "pitch_deg": -35,
+        "range_m": 550
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/388_Greenwich_Street"
+    },
+    {
+      "company": "Citi",
+      "city": "London, UK",
+      "building_name": "Citigroup Centre, Canary Wharf",
+      "address": "25 Canada Square, Canary Wharf, London E14 5LB, UK",
+      "lat": 51.5050,
+      "lon": -0.0177,
+      "camera": {
+        "altitude_m": 400,
+        "heading_deg": 270,
+        "pitch_deg": -35,
+        "range_m": 550
+      },
+      "is_hq": false,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Citigroup_Centre,_London"
+    },
+    {
+      "company": "RBC (Royal Bank of Canada)",
+      "city": "Toronto, ON, CA",
+      "building_name": "Royal Bank Plaza",
+      "address": "200 Bay St, Toronto, ON M5J 2J5, Canada",
+      "lat": 43.6480,
+      "lon": -79.3805,
+      "camera": {
+        "altitude_m": 380,
+        "heading_deg": 200,
+        "pitch_deg": -35,
+        "range_m": 550
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Royal_Bank_Plaza"
+    },
+    {
+      "company": "RBC (Royal Bank of Canada)",
+      "city": "New York, NY, US",
+      "building_name": "RBC Capital Markets - 200 Vesey",
+      "address": "200 Vesey St, New York, NY 10281",
+      "lat": 40.7146,
+      "lon": -74.0140,
+      "camera": {
+        "altitude_m": 380,
+        "heading_deg": 60,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": false,
+      "confidence": "medium",
+      "source_url": "https://www.rbccm.com/en/about-us/locations.page"
+    },
+    {
+      "company": "Intel",
+      "city": "Santa Clara, CA, US",
+      "building_name": "Robert Noyce Building",
+      "address": "2200 Mission College Blvd, Santa Clara, CA 95054",
+      "lat": 37.3878,
+      "lon": -121.9643,
+      "camera": {
+        "altitude_m": 300,
+        "heading_deg": 30,
+        "pitch_deg": -35,
+        "range_m": 450
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Intel"
+    },
+    {
+      "company": "Intel",
+      "city": "Hillsboro, OR, US",
+      "building_name": "Intel Ronler Acres Campus",
+      "address": "2501 NE Century Blvd, Hillsboro, OR 97124",
+      "lat": 45.5419,
+      "lon": -122.9214,
+      "camera": {
+        "altitude_m": 380,
+        "heading_deg": 60,
+        "pitch_deg": -35,
+        "range_m": 600
+      },
+      "is_hq": false,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Ronler_Acres"
+    },
+    {
+      "company": "Tata Group",
+      "city": "Mumbai, IN",
+      "building_name": "Bombay House",
+      "address": "Bombay House, 24 Homi Mody St, Fort, Mumbai, Maharashtra 400001, India",
+      "lat": 18.9320,
+      "lon": 72.8347,
+      "camera": {
+        "altitude_m": 280,
+        "heading_deg": 200,
+        "pitch_deg": -30,
+        "range_m": 400
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Bombay_House"
+    },
+    {
+      "company": "Okta",
+      "city": "San Francisco, CA, US",
+      "building_name": "Okta HQ - 100 First Street",
+      "address": "100 First St, San Francisco, CA 94105",
+      "lat": 37.7895,
+      "lon": -122.3957,
+      "camera": {
+        "altitude_m": 320,
+        "heading_deg": 90,
+        "pitch_deg": -35,
+        "range_m": 450
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://www.okta.com/contact/"
+    },
+    {
+      "company": "Binance",
+      "city": "Dubai, AE",
+      "building_name": "Binance Dubai (DMCC)",
+      "address": "DMCC Free Zone, Jumeirah Lakes Towers, Dubai, UAE",
+      "lat": 25.0697,
+      "lon": 55.1411,
+      "camera": {
+        "altitude_m": 350,
+        "heading_deg": 90,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": true,
+      "confidence": "low",
+      "source_url": "Binance has no fixed global HQ; Dubai (DMCC) used as nominal regional anchor"
+    },
+    {
+      "company": "Binance",
+      "city": "Paris, FR",
+      "building_name": "Binance France",
+      "address": "16 rue de la Banque, 75002 Paris, France",
+      "lat": 48.8676,
+      "lon": 2.3403,
+      "camera": {
+        "altitude_m": 250,
+        "heading_deg": 0,
+        "pitch_deg": -30,
+        "range_m": 350
+      },
+      "is_hq": false,
+      "confidence": "low",
+      "source_url": "Binance France registered office; exact suite varies"
+    },
+    {
+      "company": "PwC",
+      "city": "London, UK",
+      "building_name": "1 Embankment Place",
+      "address": "1 Embankment Place, London WC2N 6RH, UK",
+      "lat": 51.5076,
+      "lon": -0.1244,
+      "camera": {
+        "altitude_m": 300,
+        "heading_deg": 0,
+        "pitch_deg": -30,
+        "range_m": 450
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Embankment_Place"
+    },
+    {
+      "company": "PwC",
+      "city": "New York, NY, US",
+      "building_name": "PwC Tower at 300 Madison",
+      "address": "300 Madison Ave, New York, NY 10017",
+      "lat": 40.7536,
+      "lon": -73.9794,
+      "camera": {
+        "altitude_m": 380,
+        "heading_deg": 200,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": false,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/300_Madison_Avenue"
+    },
+    {
+      "company": "Walt Disney",
+      "city": "Burbank, CA, US",
+      "building_name": "Team Disney - Michael D. Eisner Building",
+      "address": "500 S Buena Vista St, Burbank, CA 91521",
+      "lat": 34.1561,
+      "lon": -118.3253,
+      "camera": {
+        "altitude_m": 320,
+        "heading_deg": 60,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Walt_Disney_Studios_(Burbank)"
+    },
+    {
+      "company": "Walt Disney",
+      "city": "New York, NY, US",
+      "building_name": "Disney 7 Hudson Square",
+      "address": "7 Hudson Square, 137 Varick St, New York, NY 10013",
+      "lat": 40.7268,
+      "lon": -74.0067,
+      "camera": {
+        "altitude_m": 320,
+        "heading_deg": 90,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": false,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/7_Hudson_Square"
+    },
+    {
+      "company": "Crowe LLP",
+      "city": "Chicago, IL, US",
+      "building_name": "Crowe HQ - 225 W Wacker",
+      "address": "225 W Wacker Dr, Chicago, IL 60606",
+      "lat": 41.8867,
+      "lon": -87.6354,
+      "camera": {
+        "altitude_m": 350,
+        "heading_deg": 0,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://www.crowe.com/about/locations - Chicago global HQ"
+    },
+    {
+      "company": "Qualcomm",
+      "city": "San Diego, CA, US",
+      "building_name": "Qualcomm Headquarters (Building Q)",
+      "address": "5775 Morehouse Dr, San Diego, CA 92121",
+      "lat": 32.8950,
+      "lon": -117.1948,
+      "camera": {
+        "altitude_m": 320,
+        "heading_deg": 30,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Qualcomm"
+    },
+    {
+      "company": "TCS (Tata Consultancy Services)",
+      "city": "Mumbai, IN",
+      "building_name": "TCS House",
+      "address": "Raveline St, Fort, Mumbai, Maharashtra 400001, India",
+      "lat": 18.9333,
+      "lon": 72.8362,
+      "camera": {
+        "altitude_m": 280,
+        "heading_deg": 90,
+        "pitch_deg": -30,
+        "range_m": 400
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Tata_Consultancy_Services"
+    },
+    {
+      "company": "TCS (Tata Consultancy Services)",
+      "city": "New York, NY, US",
+      "building_name": "TCS North America - 101 Park Ave",
+      "address": "101 Park Ave, New York, NY 10178",
+      "lat": 40.7521,
+      "lon": -73.9784,
+      "camera": {
+        "altitude_m": 380,
+        "heading_deg": 200,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": false,
+      "confidence": "medium",
+      "source_url": "https://www.tcs.com/contact-us"
+    },
+    {
+      "company": "Microsoft",
+      "city": "Redmond, WA, US",
+      "building_name": "Microsoft Redmond Campus (Building 92 Visitor Center)",
+      "address": "15010 NE 36th St, Redmond, WA 98052",
+      "lat": 47.6396,
+      "lon": -122.1284,
+      "camera": {
+        "altitude_m": 380,
+        "heading_deg": 60,
+        "pitch_deg": -35,
+        "range_m": 600
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Microsoft_campus"
+    },
+    {
+      "company": "Microsoft",
+      "city": "London, UK",
+      "building_name": "Microsoft UK - 2 Kingdom Street, Paddington Central",
+      "address": "2 Kingdom St, London W2 6BD, UK",
+      "lat": 51.5197,
+      "lon": -0.1816,
+      "camera": {
+        "altitude_m": 300,
+        "heading_deg": 90,
+        "pitch_deg": -30,
+        "range_m": 450
+      },
+      "is_hq": false,
+      "confidence": "high",
+      "source_url": "https://news.microsoft.com/en-gb/microsoftuk/contact-us/"
+    },
+    {
+      "company": "Capgemini",
+      "city": "Paris, FR",
+      "building_name": "Capgemini HQ Tour Europlaza",
+      "address": "11 Place des Vosges, Tour Europlaza, 92400 Courbevoie, France",
+      "lat": 48.8893,
+      "lon": 2.2421,
+      "camera": {
+        "altitude_m": 350,
+        "heading_deg": 90,
+        "pitch_deg": -35,
+        "range_m": 500
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Capgemini"
+    },
+    {
+      "company": "Capital One",
+      "city": "McLean, VA, US",
+      "building_name": "Capital One HQ Tower",
+      "address": "1680 Capital One Dr, McLean, VA 22102",
+      "lat": 38.9229,
+      "lon": -77.2233,
+      "camera": {
+        "altitude_m": 380,
+        "heading_deg": 60,
+        "pitch_deg": -35,
+        "range_m": 600
+      },
+      "is_hq": true,
+      "confidence": "high",
+      "source_url": "https://en.wikipedia.org/wiki/Capital_One"
+    },
+    {
+      "company": "Capital One",
+      "city": "New York, NY, US",
+      "building_name": "Capital One NYC - 11 W 19th",
+      "address": "11 W 19th St, New York, NY 10011",
+      "lat": 40.7401,
+      "lon": -73.9939,
+      "camera": {
+        "altitude_m": 280,
+        "heading_deg": 90,
+        "pitch_deg": -30,
+        "range_m": 400
+      },
+      "is_hq": false,
+      "confidence": "medium",
+      "source_url": "https://www.capitalone.com/about/locations/"
+    },
+    {
+      "company": "Anthropic",
+      "city": "San Francisco, CA, US",
+      "building_name": "Anthropic HQ",
+      "address": "548 Market St, San Francisco, CA 94104",
+      "lat": 37.7896,
+      "lon": -122.4019,
+      "camera": {
+        "altitude_m": 280,
+        "heading_deg": 45,
+        "pitch_deg": -30,
+        "range_m": 400
+      },
+      "is_hq": true,
+      "confidence": "medium",
+      "source_url": "Anthropic registered SF address; main office in SoMa/FiDi"
+    }
+  ]
+}

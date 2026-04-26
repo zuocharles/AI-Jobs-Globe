@@ -1,24 +1,35 @@
 /**
- * Spike + heat layer.
+ * Spike + heat layer (hybrid rendering).
+ *
+ * Three coordinated layers per office cluster:
+ *
+ *   1. **Heat aura** (Entity.ellipse, ground-clamped): one big translucent
+ *      cyan disc per city. Radius scales with sqrt(total city jobs) so SF Bay
+ *      Area reads as a much larger glow than Boise. Visible from orbit.
+ *
+ *   2. **Always-visible point marker** (Entity.point, screen-space pixels):
+ *      one small cyan/blue/purple dot per office. Stays the same size on screen
+ *      regardless of camera distance — never invisible from orbit, never huge
+ *      when zoomed in. This is the click target for hover + select.
+ *
+ *   3. **Polyline spike** (Entity.polyline, screen-space pixels for width):
+ *      thin vertical line rising from each office, height proportional to
+ *      log2(jobs). 3 px wide, so it's always visible from any altitude but
+ *      thin enough to see PAST when zoomed close (no more "fat cylinder
+ *      blocking the camera" problem).
  *
  * Many of our office rows share the exact same lat/lon (e.g. 50+ companies
- * geocoded to "San Francisco, CA" at 37.7749, -122.4194). If we drop a
- * cylinder at every row, they all stack on the same pixel — visually we lose
- * the signal that SF is a hotspot.
- *
- * Strategy:
- *   1. Group offices by rounded (lat, lon) — that's a city cluster.
- *   2. For each cluster, draw ONE big heat-aura disc at the centre, sized by
- *      total jobs across all companies in that city.
- *   3. Distribute each company's spike in a small ring around the centre so
- *      they remain individually selectable. Heights scale with the company's
- *      job count at that office.
+ * geocoded to "San Francisco, CA"). We cluster by rounded coords, draw ONE
+ * heat aura per city, and distribute the per-office points + polylines in a
+ * small ring around the centre so they're individually selectable.
  */
 import {
   Cartesian3,
   Color,
   ColorMaterialProperty,
+  PolylineGlowMaterialProperty,
   HeightReference,
+  NearFarScalar,
 } from 'cesium';
 
 const TIER_COLOR = {
@@ -27,7 +38,6 @@ const TIER_COLOR = {
   3: Color.fromCssColorString('#8b5cf6'),  // purple — emerging
 };
 
-// Heat aura at the city centre. Cyan because that's our "data" colour.
 const HEAT_COLOR = Color.fromCssColorString('#00ffff');
 
 function tierColor(tier) {
@@ -35,44 +45,33 @@ function tierColor(tier) {
 }
 
 /**
- * Spike height in meters. Scaled so a 1-job site is still visible from orbit
- * (~30 km) and a 100-job site towers (~140 km).
+ * Polyline spike height in meters. Tall enough to read from low orbit, but
+ * scaled gently so big sites tower without dwarfing the planet:
+ *   1 job   ≈  40 km
+ *   10 jobs ≈ 100 km
+ *   100 jobs ≈ 160 km
+ *   1000 jobs ≈ 220 km
  */
 function spikeHeightMeters(jobCount) {
-  return 25_000 + Math.log2(jobCount + 1) * 18_000;
+  return 40_000 + Math.log2(jobCount + 1) * 20_000;
 }
 
 /**
- * Spike base radius in meters. A bit fatter for big sites.
- */
-function spikeRadiusMeters(jobCount) {
-  return 1_200 + Math.sqrt(jobCount) * 300;
-}
-
-/**
- * Heat-aura radius in meters around the city centre.
- * Scales with sqrt(total city jobs) so SF (~1500 jobs) reads as a much
- * bigger blob than Boise (~5 jobs).
+ * Heat-aura radius in meters around city centre. Scales with sqrt(total city
+ * jobs). SF Bay Area (~1500 jobs) gets ~150 km radius — a clear regional glow
+ * without clobbering LA. Tweak the constants if you want more/less drama.
  */
 function heatRadiusMeters(totalJobs) {
-  return 6_000 + Math.sqrt(totalJobs) * 2_000;
+  return 30_000 + Math.sqrt(totalJobs) * 4_000;
 }
 
-/**
- * Round to ~1km precision so coordinates that are "essentially the same
- * city" hash to the same key. Two offices within 0.01° (~1 km at the
- * equator) get clustered together.
- */
 function clusterKey(lat, lon) {
   return `${lat.toFixed(2)}|${lon.toFixed(2)}`;
 }
 
 /**
  * Distribute N points around a centre in a ring of given radius (meters).
- * Returns degree-offsets [dLat, dLon] for each index.
- *
- * This is the classic "small ring" trick: 1 deg of latitude is ~111 km,
- * 1 deg of longitude is ~111*cos(lat) km. We invert that for the offset.
+ * 1 deg lat ≈ 111 km; 1 deg lon ≈ 111*cos(lat) km.
  */
 function ringOffset(index, count, radiusMeters, centreLatDeg) {
   if (count <= 1) return [0, 0];
@@ -83,7 +82,7 @@ function ringOffset(index, count, radiusMeters, centreLatDeg) {
 }
 
 /**
- * Add spikes + heat auras to the viewer.
+ * Add the hybrid spike + heat layer to the viewer.
  *
  * @param {import('cesium').Viewer} viewer
  * @param {Array} offices  Rows from the globe_data view.
@@ -94,7 +93,7 @@ export function renderSpikes(viewer, offices) {
   const entities = viewer.entities;
 
   // 1. Bucket offices by rough city coords.
-  const clusters = new Map(); // key -> { lat, lon, totalJobs, members[] }
+  const clusters = new Map();
   for (const o of offices) {
     if (!o.lat || !o.lon || !o.job_count) continue;
     const k = clusterKey(o.lat, o.lon);
@@ -104,23 +103,21 @@ export function renderSpikes(viewer, offices) {
     clusters.set(k, c);
   }
 
-  // 2. For each cluster: heat aura + per-member spikes distributed in a ring.
+  // 2. For each cluster: heat aura + per-member point + polyline spike.
   for (const cluster of clusters.values()) {
-    // Heat aura at city centre. Cesium's clamp-to-ground for ellipses requires
-    // an explicit height; we set 0 and skip the outline (outlines on
-    // ground-clamped polygons trip the material batch updater).
+    // Heat aura at city centre.
     entities.add({
       ellipse: {
         semiMinorAxis: heatRadiusMeters(cluster.totalJobs),
         semiMajorAxis: heatRadiusMeters(cluster.totalJobs),
-        material: new ColorMaterialProperty(HEAT_COLOR.withAlpha(0.18)),
+        material: new ColorMaterialProperty(HEAT_COLOR.withAlpha(0.10)),
         height: 0,
         heightReference: HeightReference.CLAMP_TO_GROUND,
       },
       position: Cartesian3.fromDegrees(cluster.lon, cluster.lat, 0),
     });
 
-    // Ring radius scales gently with cluster size so dense cities don't have
+    // Ring radius scales with cluster size so dense cities don't have
     // overlapping spikes, but small towns don't waste space.
     const ringRadius = Math.min(2_500 + cluster.members.length * 120, 25_000);
 
@@ -130,24 +127,33 @@ export function renderSpikes(viewer, offices) {
       const lon = cluster.lon + dLon;
       const id = `office-${o.office_id}`;
       const height = spikeHeightMeters(o.job_count);
-      const radius = spikeRadiusMeters(o.job_count);
       const color = tierColor(o.tier);
 
-      // Cylinder centre is at half-height so the base sits on the ground.
-      const position = Cartesian3.fromDegrees(lon, lat, height / 2);
+      const basePos = Cartesian3.fromDegrees(lon, lat, 0);
+      const tipPos = Cartesian3.fromDegrees(lon, lat, height);
 
       entities.add({
         id,
-        position,
-        cylinder: {
-          length: height,
-          topRadius: radius * 0.35,
-          bottomRadius: radius,
-          // Outlines on cylinders trip Cesium's batch updater
-          // ("materialProperty.getType is not a function" each frame). Skipping
-          // outline keeps the render loop clean; the additive material still
-          // gives the spike crisp edges.
-          material: new ColorMaterialProperty(color.withAlpha(0.7)),
+        position: basePos,
+        // Always-visible screen-space marker (the click target).
+        point: {
+          pixelSize: 6,
+          color: color.withAlpha(0.95),
+          outlineColor: Color.WHITE.withAlpha(0.4),
+          outlineWidth: 1,
+          // Stay readable at any distance — slightly bigger when very close.
+          scaleByDistance: new NearFarScalar(1.5e3, 1.4, 1.5e7, 1.0),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        // Tall thin polyline rising from the surface — the magnitude indicator.
+        polyline: {
+          positions: [basePos, tipPos],
+          width: 2.5,
+          material: new PolylineGlowMaterialProperty({
+            color: color.withAlpha(0.85),
+            glowPower: 0.25,
+            taperPower: 0.6,
+          }),
         },
         properties: {
           office_id: o.office_id,
@@ -155,36 +161,40 @@ export function renderSpikes(viewer, offices) {
         },
       });
 
-      officeById.set(id, { ...o, lat, lon }); // store the jittered coords for fly-to
+      officeById.set(id, { ...o, lat, lon });
     });
   }
 
   return officeById;
 }
 
-// Track previous hover so we only repaint two spikes per move
-// instead of all 4,682 — keeps the highlight cheap.
+// Track previous hover so we only repaint two markers per move.
 let lastHoverId = null;
 
 /**
  * Highlight one spike (on hover). Pass null to clear.
+ * Visually pumps the screen-space point larger + brighter.
  */
 export function setHover(viewer, hoverId, officeById) {
   if (hoverId === lastHoverId) return;
   if (lastHoverId) {
     const prev = viewer.entities.getById(lastHoverId);
     const prevOffice = officeById?.get(lastHoverId);
-    if (prev?.cylinder && prevOffice) {
+    if (prev?.point && prevOffice) {
       const c = tierColor(prevOffice.tier);
-      prev.cylinder.material = new ColorMaterialProperty(c.withAlpha(0.7));
+      prev.point.color = c.withAlpha(0.95);
+      prev.point.outlineColor = Color.WHITE.withAlpha(0.4);
+      prev.point.pixelSize = 6;
     }
   }
   if (hoverId) {
     const cur = viewer.entities.getById(hoverId);
     const curOffice = officeById?.get(hoverId);
-    if (cur?.cylinder && curOffice) {
+    if (cur?.point && curOffice) {
       const c = tierColor(curOffice.tier);
-      cur.cylinder.material = new ColorMaterialProperty(c.withAlpha(0.95));
+      cur.point.color = Color.WHITE;
+      cur.point.outlineColor = c;
+      cur.point.pixelSize = 12;
     }
   }
   lastHoverId = hoverId;

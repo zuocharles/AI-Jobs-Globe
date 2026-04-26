@@ -83,6 +83,15 @@ export function createGlobe(containerId) {
   cam.minimumZoomDistance = 200;
   cam.maximumZoomDistance = 30_000_000;
   cam.enableCollisionDetection = true;
+  // Snappier wheel-zoom: inertia 0 means each scroll moves immediately and
+  // doesn't queue behind the prior one. Fixes the "I can't zoom out after
+  // zooming in" feel where overlapping inertia events cancel each other.
+  cam.inertiaZoom = 0;
+  cam.inertiaTranslate = 0.5;
+  cam.inertiaSpin = 0.5;
+  // Collision detection only when very close to terrain (default 15km is
+  // overzealous and interferes with smooth zoom at orbit altitudes).
+  cam.minimumCollisionTerrainHeight = 5_000;
 
   // Mount Google Photorealistic 3D Tiles. Returns a promise so callers can
   // await first-tile load for the loading bar.

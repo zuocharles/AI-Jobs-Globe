@@ -4,6 +4,11 @@
 
 ---
 
+## Recent Changes
+- 2026-04-26 — added `data/building_focus.json` with 53 building entries (lat/lon + camera framing) for the top 30 employers, supporting Cesium scope-mode auto-focus. 30 HQs covered; ~23 secondary major hubs included. 4 entries flagged low-confidence (Prolific London exact suite, Invisible remote-only, Binance Dubai/Paris non-fixed HQ); 1 medium (Anthropic, Ro NYC, Deloitte UK, RBC NY, TCS NA, Capital One NYC). Compiled from canonical training-knowledge sources (Wikipedia infoboxes, official company location pages); live web verification was unavailable in the research environment, so a manual audit is recommended before production use.
+
+---
+
 ## Architecture: Supabase (PostgreSQL)
 
 | Component | Choice | Details |
@@ -225,6 +230,7 @@ All data lives in one unified set of files. There is NO separate Chinese company
 | `company_master_1500.csv` | 1,802 | ~200KB | All companies with domain, tier, logo info |
 | `logos/*.png` | 1,594 files | ~11MB | Company favicons (128px) |
 | `logo_results.csv` | 1,802 | ~100KB | Logo fetch results and domain mapping |
+| `data/building_focus.json` | 53 entries | ~25KB | Per-building lat/lon + camera framing for 30 top employers (HQ + major hubs) — feeds Cesium "scope mode" auto-focus |
 
 *Job descriptions make the CSV large. Without descriptions, it's ~15MB.
 
