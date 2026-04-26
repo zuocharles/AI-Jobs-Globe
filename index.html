@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1280" />
+  <title>AI JOBS GLOBE // EMERGENCES LABS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <!-- Cesium mounts here. Filled with the photoreal globe. -->
+  <div id="cesiumContainer"></div>
+
+  <!-- HUD: top-left classification block -->
+  <header id="hud-top-left" class="hud-overlay">
+    <div class="hud-line">EMERGENCES LABS // AI-JOBS-GLOBE // V0.1</div>
+    <div class="hud-line hud-dim">
+      SRC:<span id="hud-companies">----</span>
+      PINS:<span id="hud-offices">----</span>
+      JOBS:<span id="hud-jobs">-----</span>
+      <span id="hud-frame">--ms</span>
+    </div>
+  </header>
+
+  <!-- HUD: top-right timestamp + camera coords -->
+  <header id="hud-top-right" class="hud-overlay">
+    <div class="hud-line">REC <span id="hud-time">----------T--:--:--Z</span></div>
+    <div class="hud-line hud-dim">
+      LAT: <span id="hud-lat">--.--</span>
+      LON: <span id="hud-lon">---.--</span>
+      ALT: <span id="hud-alt">--.-</span>
+    </div>
+  </header>
+
+  <!-- Top bar: title + search + filters -->
+  <nav id="topbar">
+    <div class="topbar-left">
+      <span class="topbar-title">AI JOBS GLOBE</span>
+      <span class="topbar-sub">// EMERGENCES LABS</span>
+    </div>
+    <div class="topbar-center">
+      <input
+        id="search-input"
+        type="text"
+        class="search-input"
+        placeholder="// SEARCH COMPANY"
+        autocomplete="off"
+      />
+      <ul id="search-results" class="search-results" hidden></ul>
+    </div>
+    <div class="topbar-right">
+      <button id="filter-btn" class="btn-ghost">[ FILTERS ]</button>
+      <button id="help-btn" class="btn-ghost">[ ? ]</button>
+    </div>
+  </nav>
+
+  <!-- Top companies quick-jump (left rail) -->
+  <aside id="company-rail" class="company-rail">
+    <header class="company-rail-header">// TARGETS</header>
+    <ul id="company-rail-list" class="company-rail-list"></ul>
+  </aside>
+
+  <!-- Detail panel (right). Hidden until a spike is clicked. -->
+  <aside id="panel" class="panel" hidden>
+    <header class="panel-header">
+      <span class="panel-title">// SITE DETAIL</span>
+      <button id="panel-close" class="panel-close">[X]</button>
+    </header>
+    <div id="panel-body" class="panel-body"></div>
+  </aside>
+
+  <!-- Bottom: location pills + stats bar -->
+  <footer id="bottombar">
+    <div id="location-pills" class="location-pills">
+      <button class="pill" data-lat="37.7749" data-lon="-122.4194">[ SAN FRANCISCO ]</button>
+      <button class="pill" data-lat="40.7128" data-lon="-74.0060">[ NEW YORK ]</button>
+      <button class="pill" data-lat="51.5074" data-lon="-0.1278">[ LONDON ]</button>
+      <button class="pill" data-lat="35.6762" data-lon="139.6503">[ TOKYO ]</button>
+      <button class="pill" data-lat="39.9042" data-lon="116.4074">[ BEIJING ]</button>
+      <button class="pill" data-lat="32.0853" data-lon="34.7818">[ TEL AVIV ]</button>
+    </div>
+    <div id="stats" class="stats">
+      <span class="stat"><span id="stat-jobs">0</span> AI JOBS</span>
+      <span class="sep">//</span>
+      <span class="stat"><span id="stat-companies">0</span> COMPANIES</span>
+      <span class="sep">//</span>
+      <span class="stat"><span id="stat-countries">0</span> COUNTRIES</span>
+      <span class="sep">//</span>
+      <span class="stat-dim">POWERED BY EMERGENCES LABS</span>
+    </div>
+  </footer>
+
+  <!-- Hover tooltip. Positioned absolutely in JS. -->
+  <div id="tooltip" class="tooltip" hidden></div>
+
+  <!-- Loading overlay -->
+  <div id="loading" class="loading-overlay">
+    <div class="loading-text">LOADING SATELLITE FEED</div>
+    <div class="loading-progress"><div id="loading-bar" class="loading-bar"></div></div>
+    <div class="loading-status" id="loading-status">// INITIALIZING</div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

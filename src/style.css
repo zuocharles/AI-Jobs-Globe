@@ -1,0 +1,674 @@
+/* ============================================================
+   AI JOBS GLOBE — SIGINT TERMINAL DESIGN SYSTEM
+   Reference: WORLDVIEW (CRT mode), Palantir Gotham
+   ============================================================ */
+
+:root {
+  /* ── typography ─────────────────────────────────────── */
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", "Cascadia Code", monospace;
+
+  /* ── backgrounds ────────────────────────────────────── */
+  --bg-space: #000000;
+  --bg-panel: rgba(8, 12, 20, 0.92);
+  --bg-panel-hover: #0f1520;
+  --bg-input: #0a0f1a;
+
+  /* ── borders ────────────────────────────────────────── */
+  --border-default: #1a2235;
+  --border-active: #2a3a55;
+  --border-accent: #00cccc;
+
+  /* ── text ───────────────────────────────────────────── */
+  --text-primary: #c8d0dc;
+  --text-secondary: #6b7a8d;
+  --text-dim: #3a4a5c;
+
+  /* ── accents (functional, not decorative) ───────────── */
+  --cyan: #00ffff;
+  --cyan-dim: #007a7a;
+  --amber: #fcd34d;
+  --amber-dim: #92400e;
+  --green: #22c55e;
+  --red: #ef4444;
+  --blue: #3b82f6;
+  --purple: #8b5cf6;
+
+  /* ── spacing ────────────────────────────────────────── */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --panel-padding: 16px;
+  --border-width: 1px;
+  --border-radius: 0px;
+}
+
+/* ============================================================
+   reset
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-space);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  cursor: default;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 1px solid var(--cyan);
+  outline-offset: 0;
+}
+
+/* ============================================================
+   Cesium container — globe fills the viewport
+   ============================================================ */
+#cesiumContainer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--bg-space);
+}
+
+/* hide Cesium's default chrome — we have our own */
+.cesium-viewer-bottom,
+.cesium-viewer-toolbar,
+.cesium-viewer-fullscreenContainer,
+.cesium-viewer-vrContainer,
+.cesium-viewer-animationContainer,
+.cesium-viewer-timelineContainer,
+.cesium-credit-textContainer,
+.cesium-credit-imageContainer,
+.cesium-widget-credits {
+  display: none !important;
+}
+
+.cesium-viewer,
+.cesium-widget,
+.cesium-widget canvas {
+  background: var(--bg-space) !important;
+}
+
+/* ============================================================
+   HUD overlays (top-left + top-right, like WORLDVIEW)
+   ============================================================ */
+.hud-overlay {
+  position: fixed;
+  top: var(--space-lg);
+  z-index: 30;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--cyan);
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+  text-shadow: 0 0 4px rgba(0, 255, 255, 0.4);
+}
+
+#hud-top-left {
+  left: var(--space-lg);
+  text-align: left;
+}
+
+#hud-top-right {
+  right: var(--space-lg);
+  text-align: right;
+}
+
+.hud-line + .hud-line {
+  margin-top: 2px;
+}
+
+.hud-dim {
+  color: var(--text-secondary);
+  text-shadow: none;
+}
+
+/* ============================================================
+   Top bar
+   ============================================================ */
+#topbar {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xl);
+  width: min(1080px, calc(100vw - 64px));
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--bg-panel);
+  border: var(--border-width) solid var(--border-default);
+  white-space: nowrap;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.topbar-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--cyan);
+  text-shadow: 0 0 6px rgba(0, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+.topbar-sub {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.topbar-center {
+  position: relative;
+  flex: 1;
+  max-width: 380px;
+}
+
+.search-input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-input);
+  border: var(--border-width) solid var(--border-default);
+  color: var(--text-primary);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+
+.search-input::placeholder {
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+}
+
+.search-input:focus {
+  border-color: var(--cyan);
+  outline: none;
+}
+
+.search-results {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+  background: var(--bg-panel);
+  border: var(--border-width) solid var(--border-default);
+  border-top: none;
+  list-style: none;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 21;
+}
+
+.search-results li {
+  padding: var(--space-sm) var(--space-md);
+  font-size: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.search-results li:hover,
+.search-results li.active {
+  background: var(--bg-panel-hover);
+  color: var(--cyan);
+}
+
+.topbar-right {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+.btn-ghost {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-input);
+  border: var(--border-width) solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  transition: color 150ms linear, border-color 150ms linear;
+}
+
+.btn-ghost:hover {
+  color: var(--cyan);
+  border-color: var(--border-active);
+}
+
+/* ============================================================
+   Top companies quick-jump (left rail)
+   ============================================================ */
+.company-rail {
+  position: fixed;
+  top: 130px;
+  bottom: 110px;
+  left: var(--space-lg);
+  z-index: 18;
+  width: 240px;
+  background: var(--bg-panel);
+  border: var(--border-width) solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+}
+
+.company-rail-header {
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border-default);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--amber);
+  text-transform: uppercase;
+}
+
+.company-rail-list {
+  list-style: none;
+  overflow-y: auto;
+  flex: 1;
+  padding: 0;
+  margin: 0;
+}
+
+.company-rail-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 6px var(--space-md);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-default);
+  font-size: 11px;
+  color: var(--text-primary);
+  transition: background 100ms linear, color 100ms linear;
+}
+
+.company-rail-list li:hover {
+  background: var(--bg-panel-hover);
+  color: var(--cyan);
+}
+
+.company-rail-list li .rail-co {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.company-rail-list li .rail-jobs {
+  color: var(--cyan);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+/* ============================================================
+   Detail panel (right edge)
+   ============================================================ */
+#panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  width: 420px;
+  background: var(--bg-panel);
+  border-left: var(--border-width) solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(0);
+  transition: transform 200ms linear;
+}
+
+#panel[hidden] {
+  transform: translateX(100%);
+  display: flex !important;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: var(--border-width) solid var(--border-default);
+}
+
+.panel-title {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--amber);
+}
+
+.panel-close {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+}
+
+.panel-close:hover {
+  color: var(--red);
+}
+
+.panel-body {
+  padding: var(--space-lg);
+  overflow-y: auto;
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* job list inside panel */
+.panel-company {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border-default);
+  margin-bottom: var(--space-lg);
+}
+
+.panel-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  background: var(--bg-input);
+  padding: 4px;
+  border: 1px solid var(--border-default);
+}
+
+.panel-logo-fallback {
+  width: 56px;
+  height: 56px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--cyan);
+}
+
+.panel-company-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+}
+
+.panel-company-meta {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.tier-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  margin-left: 6px;
+  border: 1px solid;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  vertical-align: middle;
+}
+
+.tier-1 { color: var(--cyan); border-color: var(--cyan); }
+.tier-2 { color: var(--blue); border-color: var(--blue); }
+.tier-3 { color: var(--purple); border-color: var(--purple); }
+
+.panel-section-label {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin: var(--space-lg) 0 var(--space-sm);
+}
+
+.job-list {
+  list-style: none;
+}
+
+.job-row {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.job-row:last-child { border-bottom: none; }
+
+.job-title {
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 12px;
+  display: block;
+}
+
+.job-title:hover {
+  color: var(--cyan);
+  text-decoration: underline;
+}
+
+.job-meta {
+  display: flex;
+  gap: var(--space-md);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.job-aitype {
+  padding: 0 4px;
+  border: 1px solid var(--border-default);
+  color: var(--amber);
+}
+
+/* ============================================================
+   Bottom bar (location pills + stats)
+   ============================================================ */
+#bottombar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  pointer-events: none;
+}
+
+.location-pills {
+  display: flex;
+  gap: var(--space-sm);
+  pointer-events: auto;
+}
+
+.pill {
+  padding: var(--space-xs) var(--space-md);
+  background: var(--bg-panel);
+  border: var(--border-width) solid var(--border-default);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text-secondary);
+  transition: color 150ms linear, border-color 150ms linear;
+  white-space: nowrap;
+}
+
+.pill:hover {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
+
+.pill.active {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
+
+.stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--bg-panel);
+  border: var(--border-width) solid var(--border-default);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  pointer-events: auto;
+  white-space: nowrap;
+}
+
+.stat {
+  color: var(--text-primary);
+}
+
+.stat span {
+  color: var(--cyan);
+  font-weight: 600;
+  text-shadow: 0 0 4px rgba(0, 255, 255, 0.4);
+}
+
+.sep {
+  color: var(--text-dim);
+}
+
+.stat-dim {
+  color: var(--text-dim);
+}
+
+/* ============================================================
+   Hover tooltip
+   ============================================================ */
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-panel);
+  border: var(--border-width) solid var(--cyan);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translate(8px, -50%);
+  text-shadow: 0 0 4px rgba(0, 255, 255, 0.3);
+}
+
+.tooltip-name {
+  font-weight: 600;
+  color: var(--cyan);
+}
+
+.tooltip-meta {
+  font-size: 10px;
+  color: var(--text-secondary);
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}
+
+/* ============================================================
+   Loading overlay
+   ============================================================ */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg-space);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  transition: opacity 400ms linear;
+}
+
+.loading-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-text {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  color: var(--cyan);
+  text-shadow: 0 0 6px rgba(0, 255, 255, 0.5);
+}
+
+.loading-progress {
+  width: 320px;
+  height: 4px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+}
+
+.loading-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+  transition: width 200ms linear;
+}
+
+.loading-status {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--text-secondary);
+}
+
+/* ============================================================
+   Subtle scanline overlay across the whole viewport (CRT feel)
+   ============================================================ */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 200;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.06) 2px,
+    rgba(0, 0, 0, 0.06) 3px
+  );
+  mix-blend-mode: multiply;
+}

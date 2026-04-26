@@ -1,0 +1,19 @@
+{
+  "name": "ai-jobs-globe",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 5173"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "cesium": "^1.124.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10",
+    "vite-plugin-cesium": "^1.2.23"
+  }
+}
