@@ -658,6 +658,24 @@ input:focus-visible {
   color: var(--text-dim);
 }
 
+.footer-link {
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color 150ms linear;
+  margin-left: 4px;
+}
+
+.footer-link:hover {
+  color: var(--cyan);
+}
+
+.footer-link-icon {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  margin-left: 6px;
+  padding: 0 2px;
+}
+
 /* ============================================================
    Hover tooltip
    ============================================================ */

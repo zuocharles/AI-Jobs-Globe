@@ -165,11 +165,10 @@ export function renderSpikes(viewer, offices) {
       id,
       polyline: {
         positions: [basePos, tipPos],
-        // 8 px — enough to click reliably without the chunky-pill look.
-        width: 8,
+        // 12 px — visible from the near-top-down camera angle. Solid line
+        // core with mild halo (glowPower 0.30) keeps it from looking diffuse.
+        width: 12,
         material: new PolylineGlowMaterialProperty({
-          // alpha 1.0 + small glow halo (0.30) → solid line core, slight
-          // luminance around it. Less "diffuse cloud" than 0.55.
           color: color.withAlpha(1.0),
           glowPower: 0.30,
           taperPower: 0.5,
@@ -200,7 +199,7 @@ export function setHover(viewer, hoverId, officeById) {
     const prevOffice = officeById?.get(lastHoverId);
     if (prev?.polyline && prevOffice) {
       const c = tierColor(prevOffice.tier);
-      prev.polyline.width = 8;
+      prev.polyline.width = 12;
       prev.polyline.material = new PolylineGlowMaterialProperty({
         color: c.withAlpha(1.0),
         glowPower: 0.30,
@@ -212,7 +211,7 @@ export function setHover(viewer, hoverId, officeById) {
     const cur = viewer.entities.getById(hoverId);
     const curOffice = officeById?.get(hoverId);
     if (cur?.polyline && curOffice) {
-      cur.polyline.width = 12;
+      cur.polyline.width = 18;
       cur.polyline.material = new PolylineGlowMaterialProperty({
         color: Color.WHITE.withAlpha(1.0),
         glowPower: 0.45,
