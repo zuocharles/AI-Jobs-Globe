@@ -20,6 +20,7 @@ import {
   bestBuildingForCompany,
   topBuildingInCity,
   allBuildings,
+  indexOffices,
 } from './buildings.js';
 import { enterScope, exitScope, cycle, isScopeActive } from './scope.js';
 
@@ -75,6 +76,10 @@ async function main() {
 
   setLoading(70, 'PLOTTING SITES');
   const officeById = renderSpikes(viewer, offices);
+  // Build the building → office inverse lookup so scope.js can:
+  //   - skip rendering brackets for buildings with no office row
+  //   - tag each bracket with office_id (clickable → open panel)
+  indexOffices(officeById);
 
   // Build a (company name → total jobs) lookup once. Used by city-pill scope
   // ("top company in SF"), and the scope-select dropdown sort.
@@ -127,12 +132,23 @@ async function main() {
   handler.setInputAction((movement) => {
     const picked = viewer.scene.pick(movement.position);
     const id = picked?.id?.id;
-    const office = id && officeById.get(id);
+    if (!id) { closePanel(); return; }
+    // 1. polyline pick → office_id directly maps via officeById
+    const office = officeById.get(id);
     if (office) {
       focusOffice(office);
-    } else {
-      closePanel();
+      return;
     }
+    // 2. scope-mode bracket pick → id starts with __scope_bracket__:office-N
+    //    Look up that office and just open its panel (camera stays put — user
+    //    is already in scope, no need to fly anywhere).
+    if (typeof id === 'string' && id.startsWith('__scope_bracket__:')) {
+      const officeId = id.slice('__scope_bracket__:'.length);
+      const o = officeById.get(officeId);
+      if (o) openPanel(o);
+      return;
+    }
+    closePanel();
   }, ScreenSpaceEventType.LEFT_CLICK);
 
   // ── Location pills → enter scope on top company in that city ────

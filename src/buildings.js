@@ -120,6 +120,37 @@ export function allBuildings() {
   return buildings;
 }
 
+// ── inverse lookup: building → matching office row ────────────────────
+// Populated by indexOffices() once at boot from main.js, after the
+// Supabase fetch + spike rendering is done. Used by scope.js to:
+//   - skip rendering brackets for buildings that have no office row
+//     (TikTok Beijing, Goldman Tokyo etc.) — Charles asked for this so
+//     no brackets lead to empty panels
+//   - attach office_id to bracket entities so a click on the bracket can
+//     open the right-side detail panel
+let officeByCompanyCity = new Map();
+
+/**
+ * Build the (company, city) → office lookup. Call once after data fetch.
+ * @param {Map<string, object>} officeById  entityId → office row
+ */
+export function indexOffices(officeById) {
+  officeByCompanyCity = new Map();
+  for (const o of officeById.values()) {
+    const k = normalize(o.company) + '|' + cityShort(o.location_name);
+    if (!officeByCompanyCity.has(k)) officeByCompanyCity.set(k, o);
+  }
+}
+
+/**
+ * Office row matching a building entry, or null. Used to skip empty
+ * brackets and to power click-bracket-to-open-panel.
+ */
+export function findOfficeForBuilding(building) {
+  if (!building) return null;
+  return officeByCompanyCity.get(normalize(building.company) + '|' + cityShort(building.city)) || null;
+}
+
 /**
  * All buildings sorted by longitude west→east, then latitude. This is the
  * order Cesium scope-mode uses to cycle around the globe — clicking NEXT

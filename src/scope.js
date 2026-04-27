@@ -24,6 +24,7 @@ import {
   allBuildingsByLongitude,
   buildingIndex,
   buildingsNear,
+  findOfficeForBuilding,
 } from './buildings.js';
 
 const barEl = () => document.getElementById('scope-bar');
@@ -196,22 +197,24 @@ function hideBuildingHighlight(viewer) {
 /**
  * Render bracket markers `[ ]` for every building near the active one, so
  * the user sees the WORLDVIEW look of "scopable targets" inside the current
- * frame. Each bracket is independently positioned at its own building's
- * lat/lon so they correctly anchor to the photoreal geometry.
+ * frame. Skips buildings with no matching office row (so brackets never
+ * lead to empty panels) and tags each bracket entity with its office_id
+ * so clicking a bracket can open the detail panel.
  */
 function refreshScopeBrackets(viewer, current) {
   clearScopeBrackets(viewer);
-  // 5km radius around the active building — companies that share the
-  // current frame. Includes `current` itself.
+  // 5km radius around the active building — companies that share the frame.
   const visible = buildingsNear(current.lat, current.lon, 5);
   for (const b of visible) {
+    const office = findOfficeForBuilding(b);
+    if (!office) continue;   // skip brackets that lead nowhere
     const isCurrent = b.lat === current.lat && b.lon === current.lon && b.company === current.company;
     const color = isCurrent
       ? Color.fromCssColorString('#fcd34d')   // amber for the active one
       : Color.fromCssColorString('#00ffff');  // cyan for neighbours
     viewer.entities.add({
-      id: BRACKET_ID_PREFIX + b.company + '|' + b.lat + '|' + b.lon,
-      position: Cartesian3.fromDegrees(b.lon, b.lat, 30),  // sit ~30m above ground
+      id: BRACKET_ID_PREFIX + 'office-' + office.office_id,
+      position: Cartesian3.fromDegrees(b.lon, b.lat, 30),
       label: {
         text: '[ ' + (b.company || '') + ' ]',
         font: '12px "JetBrains Mono", monospace',
@@ -222,7 +225,10 @@ function refreshScopeBrackets(viewer, current) {
         verticalOrigin: VerticalOrigin.BOTTOM,
         pixelOffset: new Cartesian2(0, -4),
         scaleByDistance: new NearFarScalar(200, 1.2, 5_000, 0.7),
-        disableDepthTestDistance: 50_000,  // visible within scope range, occluded beyond
+        disableDepthTestDistance: 50_000,
+      },
+      properties: {
+        office_id: office.office_id,
       },
     });
   }
