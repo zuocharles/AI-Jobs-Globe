@@ -13,14 +13,25 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closePanel();
 });
 
+// Sequence guard for openPanel — every call increments this; an in-flight
+// fetch only paints to the DOM if its sequence is still the latest. Without
+// this, clicking through TARGETS quickly (or cycling ←/→) caused stale
+// fetches to race-overwrite each other (Charles bug 2026-04-27: panel stuck
+// on Amazon while scope was on OpenAI).
+let openPanelSeq = 0;
+
 export function closePanel() {
   panelEl.hidden = true;
+  // Bumping the sequence here too means any in-flight fetch will be ignored
+  // when it resolves — no zombie repaint after the panel was supposed to close.
+  openPanelSeq++;
 }
 
 /**
  * Open the panel for a given office row (from globe_data).
  */
 export async function openPanel(office) {
+  const mySeq = ++openPanelSeq;
   panelEl.hidden = false;
   bodyEl.innerHTML = renderHeader(office) + `
     <div class="panel-section-label">// LOADING JOBS…</div>
@@ -31,12 +42,16 @@ export async function openPanel(office) {
     jobs = await fetchOfficeJobs(office.office_id);
   } catch (err) {
     console.error(err);
+    if (mySeq !== openPanelSeq) return;
     bodyEl.innerHTML = renderHeader(office) + `
       <div class="panel-section-label">// COULD NOT LOAD JOBS</div>
     `;
     return;
   }
 
+  // Stale-response check: a newer openPanel/closePanel call has happened
+  // while we were fetching. Don't repaint.
+  if (mySeq !== openPanelSeq) return;
   bodyEl.innerHTML = renderHeader(office) + renderJobList(jobs);
 }
 
