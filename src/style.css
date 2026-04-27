@@ -192,6 +192,12 @@ input:focus-visible {
   color: var(--cyan);
   text-shadow: 0 0 6px rgba(0, 255, 255, 0.5);
   white-space: nowrap;
+  cursor: pointer;
+  transition: text-shadow 150ms linear;
+}
+
+.topbar-title:hover {
+  text-shadow: 0 0 12px rgba(0, 255, 255, 0.9);
 }
 
 .topbar-sub {

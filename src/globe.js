@@ -147,3 +147,16 @@ export function flyTo(viewer, lat, lon, altitudeMeters = 60_000, durationSec = 1
   });
 }
 
+/**
+ * Reset the camera to the original "globe overview" framing — same
+ * destination + orientation as the initial setView in createGlobe.
+ * Wired to the topbar title click so users can always get back home.
+ */
+export function flyHome(viewer, durationSec = 1.6) {
+  viewer.camera.flyTo({
+    destination: Cartesian3.fromDegrees(-115.0, 25.0, 14_000_000),
+    orientation: { heading: 0, pitch: CesiumMath.toRadians(-85), roll: 0 },
+    duration: durationSec,
+  });
+}
+

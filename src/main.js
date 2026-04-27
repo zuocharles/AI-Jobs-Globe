@@ -6,7 +6,7 @@
  *   4. Wire hover, click, scope dropdown, scope-bar buttons, pills, keys
  *   5. Animate the loading bar away
  */
-import { createGlobe, flyTo } from './globe.js';
+import { createGlobe, flyTo, flyHome } from './globe.js';
 import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
@@ -214,6 +214,13 @@ async function main() {
   });
   document.getElementById('scope-prev')?.addEventListener('click', () => cycle(viewer, -1));
   document.getElementById('scope-next')?.addEventListener('click', () => cycle(viewer, +1));
+
+  // ── Topbar title → reset to globe home view ──────────────────
+  document.querySelector('.topbar-title')?.addEventListener('click', () => {
+    if (isScopeActive()) exitScope(viewer);
+    closePanel();
+    flyHome(viewer);
+  });
 
   // ── Done ─────────────────────────────────────────────────────
   setLoading(100, 'OPERATIONAL');

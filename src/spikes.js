@@ -22,7 +22,7 @@
 import {
   Cartesian3,
   Color,
-  PolylineGlowMaterialProperty,
+  ColorMaterialProperty,
 } from 'cesium';
 import { findBuildingForOffice } from './buildings.js';
 
@@ -37,7 +37,7 @@ function tierColor(tier) {
 }
 
 /**
- * Polyline spike height in meters.
+ * Cylinder spike height in meters.
  *   1 job   ≈  400 km  (visible from low orbit)
  *   10 jobs ≈  920 km
  *   100 jobs ≈ 1400 km
@@ -45,6 +45,15 @@ function tierColor(tier) {
  */
 function spikeHeightMeters(jobCount) {
   return 400_000 + Math.log2(jobCount + 1) * 150_000;
+}
+
+/**
+ * Cylinder radius in meters — sized to roughly match a typical office
+ * building footprint (~15-30 m wide). Scales gently with job count so a
+ * busy site reads slightly chunkier than a quiet one.
+ */
+function spikeRadiusMeters(jobCount) {
+  return 15 + Math.sqrt(jobCount) * 1.5;   // 1 job: 17m, 100 jobs: 30m, 1000 jobs: 62m
 }
 
 /** Round to ~1km precision for clustering by city. */
@@ -145,28 +154,30 @@ export function renderSpikes(viewer, offices) {
     });
   }
 
-  // Pass 5 — actually create the entities.
+  // Pass 5 — actually create the entities. Each office is a real 3D
+  // cylinder roughly the footprint of a typical office building; never an
+  // outline (Cesium's batch updater previously crashed with
+  // "materialProperty.getType is not a function" on cylinder outlines).
   for (const a of anchored) {
     const o = a.office;
     const id = `office-${o.office_id}`;
     const height = spikeHeightMeters(o.job_count);
+    const radius = spikeRadiusMeters(o.job_count);
     const color = tierColor(o.tier);
 
-    const basePos = Cartesian3.fromDegrees(a.lon, a.lat, 0);
-    const tipPos = Cartesian3.fromDegrees(a.lon, a.lat, height);
+    // Cesium positions cylinders by their CENTRE, so the entity sits at
+    // half-height to put the base flush with ground level.
+    const position = Cartesian3.fromDegrees(a.lon, a.lat, height / 2);
 
     entities.add({
       id,
-      polyline: {
-        positions: [basePos, tipPos],
-        // 7px wide — chunky enough to read as a "column" at scope distance
-        // and reliably pickable by mouse without aiming on a thin line.
-        width: 7,
-        material: new PolylineGlowMaterialProperty({
-          color: color.withAlpha(0.9),
-          glowPower: 0.35,
-          taperPower: 0.5,
-        }),
+      position,
+      cylinder: {
+        length: height,
+        topRadius: radius,
+        bottomRadius: radius,
+        material: new ColorMaterialProperty(color.withAlpha(0.7)),
+        // NO outline. NO outlineColor. They crash the batch updater.
       },
       properties: {
         office_id: o.office_id,
@@ -180,37 +191,29 @@ export function renderSpikes(viewer, offices) {
   return officeById;
 }
 
-// Track previous hover so we only repaint two spikes per move.
+// Track previous hover so we only repaint two cylinders per move.
 let lastHoverId = null;
 
 /**
- * Highlight one spike on hover. Bumps width + brightens.
+ * Highlight one spike on hover. Brightens the cylinder material.
+ * (Radius doesn't change on hover — that would require recomputing the
+ * cylinder's centre position, since the entity sits at half-height.)
  */
 export function setHover(viewer, hoverId, officeById) {
   if (hoverId === lastHoverId) return;
   if (lastHoverId) {
     const prev = viewer.entities.getById(lastHoverId);
     const prevOffice = officeById?.get(lastHoverId);
-    if (prev?.polyline && prevOffice) {
+    if (prev?.cylinder && prevOffice) {
       const c = tierColor(prevOffice.tier);
-      prev.polyline.width = 7;
-      prev.polyline.material = new PolylineGlowMaterialProperty({
-        color: c.withAlpha(0.9),
-        glowPower: 0.35,
-        taperPower: 0.5,
-      });
+      prev.cylinder.material = new ColorMaterialProperty(c.withAlpha(0.7));
     }
   }
   if (hoverId) {
     const cur = viewer.entities.getById(hoverId);
     const curOffice = officeById?.get(hoverId);
-    if (cur?.polyline && curOffice) {
-      cur.polyline.width = 11;
-      cur.polyline.material = new PolylineGlowMaterialProperty({
-        color: Color.WHITE.withAlpha(0.95),
-        glowPower: 0.5,
-        taperPower: 0.3,
-      });
+    if (cur?.cylinder && curOffice) {
+      cur.cylinder.material = new ColorMaterialProperty(Color.WHITE.withAlpha(0.95));
     }
   }
   lastHoverId = hoverId;
