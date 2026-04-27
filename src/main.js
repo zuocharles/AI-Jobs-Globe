@@ -6,7 +6,7 @@
  *   4. Wire hover, click, scope dropdown, scope-bar buttons, pills, keys
  *   5. Animate the loading bar away
  */
-import { createGlobe, flyTo, flyHome } from './globe.js';
+import { createGlobe, flyTo, flyHome, startAutoSpin } from './globe.js';
 import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
@@ -255,6 +255,9 @@ async function main() {
     closePanel();
     flyHome(viewer);
   });
+
+  // ── Auto-spin the globe at home view (suppress in scope or zoom-in) ──
+  startAutoSpin(viewer, isScopeActive);
 
   // ── Done ─────────────────────────────────────────────────────
   setLoading(100, 'OPERATIONAL');

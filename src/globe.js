@@ -160,3 +160,42 @@ export function flyHome(viewer, durationSec = 1.6) {
   });
 }
 
+/**
+ * Gentle Earth-axis auto-rotation while the user is at the home/globe
+ * view. Stops when:
+ *   - scope mode is active (caller passes the isScopeActive() callback)
+ *   - the camera has been zoomed in below `minAltitude` (default 10,000 km)
+ *
+ * User drag-rotate continues to work — both the user's drag and our
+ * rotation stack. We rotate around Cesium's UNIT_Z (the Earth's polar
+ * axis), so the spin is consistent regardless of which longitude the
+ * user has dragged to.
+ *
+ * Default speed is ~0.8°/sec (one full rotation every ~7.5 minutes) —
+ * "ambient" not "spinny."
+ *
+ * @param {Viewer} viewer
+ * @param {() => boolean} isScopeActiveFn  return true to suppress rotation
+ * @param {object} [opts]
+ * @param {number} [opts.minAltitude=10_000_000]  meters; below this, no spin
+ * @param {number} [opts.speedDegPerSec=0.8]
+ */
+export function startAutoSpin(viewer, isScopeActiveFn, opts = {}) {
+  const minAltitude = opts.minAltitude ?? 10_000_000;
+  const speedRad = CesiumMath.toRadians(opts.speedDegPerSec ?? 0.8);
+  let lastTime = performance.now();
+
+  viewer.scene.preRender.addEventListener(() => {
+    const now = performance.now();
+    // Cap dt so a tab that was backgrounded doesn't teleport the camera.
+    const dt = Math.min((now - lastTime) / 1000, 0.1);
+    lastTime = now;
+
+    if (isScopeActiveFn && isScopeActiveFn()) return;
+    const carto = viewer.camera.positionCartographic;
+    if (!carto || carto.height < minAltitude) return;
+
+    viewer.camera.rotate(Cartesian3.UNIT_Z, speedRad * dt);
+  });
+}
+
