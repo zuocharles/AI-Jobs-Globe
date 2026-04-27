@@ -6,7 +6,13 @@
  *   4. Wire hover, click, scope dropdown, scope-bar buttons, pills, keys
  *   5. Animate the loading bar away
  */
+import { inject as injectVercelAnalytics } from '@vercel/analytics';
 import { createGlobe, flyTo, flyHome, startAutoSpin } from './globe.js';
+
+// Vercel Web Analytics — privacy-friendly, no cookies. Page views,
+// visitors, geography, top referrers visible in the Vercel dashboard
+// (Project → Analytics tab) once enabled there. No-op in dev.
+injectVercelAnalytics();
 import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
