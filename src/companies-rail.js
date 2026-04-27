@@ -26,7 +26,11 @@ window.railInitials = railInitials;
 
 /**
  * @param {Map<string,object>} officeById  entityId → office row from spikes
- * @param {(office: object) => void} onPick  called with the chosen office
+ * @param {(companyName: string, fallbackOffice: object) => void} onPick
+ *   Called when a row is clicked. The companyName lets the caller look up
+ *   that company's HQ building (which always exists for our top-80) and
+ *   enter scope; the fallbackOffice is the company's busiest office (used
+ *   only if no building data exists for this company).
  */
 export function initCompanyRail(officeById, onPick) {
   // Aggregate jobs per company across all their offices in our data.
@@ -72,7 +76,7 @@ export function initCompanyRail(officeById, onPick) {
     li.addEventListener('click', () => {
       const co = li.dataset.co;
       const info = byCompany.get(co);
-      if (info?.bestOffice) onPick(info.bestOffice);
+      if (info) onPick(co, info.bestOffice || null);
     });
   });
 }

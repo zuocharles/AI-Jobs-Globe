@@ -17,6 +17,7 @@ import { openPanel, closePanel } from './panel.js';
 import { initCompanyRail } from './companies-rail.js';
 import {
   findBuildingForOffice,
+  bestBuildingForCompany,
   topBuildingInCity,
   allBuildings,
 } from './buildings.js';
@@ -154,9 +155,9 @@ async function main() {
     });
   });
 
-  // Helper: when picking an office, prefer scope-mode if we have building
-  // data; fall back to the old fly-to + side panel. When already in scope,
-  // never yank the camera back to globe view — just update the panel.
+  // POLYLINE-CLICK path. Strict (company, city) match — if office is not in
+  // a city we have building data for, fall back to plain fly-to. Never lie
+  // about location (don't fly Amazon-Paris-click to Seattle HQ).
   function focusOffice(office) {
     const building = findBuildingForOffice(office);
     if (building) {
@@ -170,8 +171,25 @@ async function main() {
     }
   }
 
+  // TARGETS-RAIL / SCOPE-DROPDOWN path. Always enters scope on the company's
+  // HQ (or first known) building if any building data exists. Falls back to
+  // the busiest-office flyTo only if the company has no building data at all.
+  // This is the fix for "EY/Ro/Deloitte/Binance click does nothing":
+  // their busiest office is in a city without a building entry, so the strict
+  // findBuildingForOffice returned null. bestBuildingForCompany pulls the HQ.
+  function focusCompany(companyName, fallbackOffice) {
+    const building = bestBuildingForCompany(companyName);
+    if (building) {
+      enterScope(viewer, building);
+      if (fallbackOffice) openPanel(fallbackOffice);
+    } else if (fallbackOffice) {
+      flyTo(viewer, fallbackOffice.lat, fallbackOffice.lon, 30_000, 1.6);
+      openPanel(fallbackOffice);
+    }
+  }
+
   // ── Top companies quick-jump rail ────────────────────────────
-  initCompanyRail(officeById, focusOffice);
+  initCompanyRail(officeById, focusCompany);
 
   // ── Scope-select dropdown (replaces old search input) ────────
   // Populate with companies that have building data, sorted by total jobs

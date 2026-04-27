@@ -51,7 +51,7 @@ for (const b of buildings) {
  *
  * Previous behaviour fell back to the first known building per company,
  * which caused all 129 Amazon offices worldwide to stack on Day One Tower
- * in Seattle. Don't do that.
+ * in Seattle. Don't do that for POLYLINE rendering.
  *
  * @param {object} office  { company, location_name, ... }
  * @returns {object|null}
@@ -60,6 +60,24 @@ export function findBuildingForOffice(office) {
   if (!office) return null;
   const co = normalize(office.company);
   return byLocationKey.get(`${co}|${cityShort(office.location_name)}`) || null;
+}
+
+/**
+ * Best building entry for a company NAME — for the TARGETS rail / scope
+ * dropdown / city pill paths where we want a guaranteed scope landing
+ * even if the rail's "busiest office" lookup pointed at a city we don't
+ * have building data for (e.g. EY's busiest office is Jerusalem but we
+ * only have EY HQ London). Prefers the entry flagged is_hq, otherwise
+ * the first known building for that company.
+ *
+ * @param {string} companyName
+ * @returns {object|null}
+ */
+export function bestBuildingForCompany(companyName) {
+  const co = normalize(companyName);
+  const list = byCompany.get(co);
+  if (!list || !list.length) return null;
+  return list.find((b) => b.is_hq) || list[0];
 }
 
 /**

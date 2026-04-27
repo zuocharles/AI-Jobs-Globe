@@ -37,15 +37,15 @@ function tierColor(tier) {
 }
 
 /**
- * Polyline spike height in meters. Bumped 2026-04-26 to read more
- * spike-like (taller relative to width) and more dramatic from globe view.
- *   1 job   ≈  600 km
- *   10 jobs ≈ 1700 km
- *   100 jobs ≈ 2400 km
- *   1000 jobs ≈ 3300 km — half Earth's radius, intentionally cosmic
+ * Polyline spike height in meters. Reverted to the original "looks like
+ * the 4:12 PM screenshot" profile.
+ *   1 job   ≈  400 km
+ *   10 jobs ≈  920 km
+ *   100 jobs ≈ 1400 km
+ *   1000 jobs ≈ 1900 km
  */
 function spikeHeightMeters(jobCount) {
-  return 600_000 + Math.log2(jobCount + 1) * 270_000;
+  return 400_000 + Math.log2(jobCount + 1) * 150_000;
 }
 
 
@@ -165,12 +165,13 @@ export function renderSpikes(viewer, offices) {
       id,
       polyline: {
         positions: [basePos, tipPos],
-        // 16 px reads as a clear column from globe scale and is very
-        // forgiving to click; still thin enough to see past when close.
-        width: 16,
+        // 8 px — enough to click reliably without the chunky-pill look.
+        width: 8,
         material: new PolylineGlowMaterialProperty({
+          // alpha 1.0 + small glow halo (0.30) → solid line core, slight
+          // luminance around it. Less "diffuse cloud" than 0.55.
           color: color.withAlpha(1.0),
-          glowPower: 0.55,
+          glowPower: 0.30,
           taperPower: 0.5,
         }),
       },
@@ -199,10 +200,10 @@ export function setHover(viewer, hoverId, officeById) {
     const prevOffice = officeById?.get(lastHoverId);
     if (prev?.polyline && prevOffice) {
       const c = tierColor(prevOffice.tier);
-      prev.polyline.width = 16;
+      prev.polyline.width = 8;
       prev.polyline.material = new PolylineGlowMaterialProperty({
         color: c.withAlpha(1.0),
-        glowPower: 0.55,
+        glowPower: 0.30,
         taperPower: 0.5,
       });
     }
@@ -211,10 +212,10 @@ export function setHover(viewer, hoverId, officeById) {
     const cur = viewer.entities.getById(hoverId);
     const curOffice = officeById?.get(hoverId);
     if (cur?.polyline && curOffice) {
-      cur.polyline.width = 22;
+      cur.polyline.width = 12;
       cur.polyline.material = new PolylineGlowMaterialProperty({
         color: Color.WHITE.withAlpha(1.0),
-        glowPower: 0.7,
+        glowPower: 0.45,
         taperPower: 0.3,
       });
     }
