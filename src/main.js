@@ -171,14 +171,14 @@ async function main() {
     });
   });
 
-  // POLYLINE-CLICK path. Strict (company, city) match — if office is not in
-  // a city we have building data for, fall back to plain fly-to. Never lie
-  // about location (don't fly Amazon-Paris-click to Seattle HQ).
+  // POLYLINE-CLICK path. enterScope syncs the panel internally to the
+  // office matching the building, so we don't double-open here. If we
+  // can't enter scope (no building data) and we're already in scope,
+  // just swap the panel to the clicked office without yanking the camera.
   function focusOffice(office) {
     const building = findBuildingForOffice(office);
     if (building) {
       enterScope(viewer, building);
-      openPanel(office);
     } else if (isScopeActive()) {
       openPanel(office);
     } else {
@@ -187,17 +187,13 @@ async function main() {
     }
   }
 
-  // TARGETS-RAIL / SCOPE-DROPDOWN path. Always enters scope on the company's
-  // HQ (or first known) building if any building data exists. Falls back to
-  // the busiest-office flyTo only if the company has no building data at all.
-  // This is the fix for "EY/Ro/Deloitte/Binance click does nothing":
-  // their busiest office is in a city without a building entry, so the strict
-  // findBuildingForOffice returned null. bestBuildingForCompany pulls the HQ.
+  // TARGETS-RAIL / SCOPE-DROPDOWN path. enterScope opens the panel for the
+  // office matching the company's HQ. Only fall back to fallbackOffice if
+  // the company has no building data at all.
   function focusCompany(companyName, fallbackOffice) {
     const building = bestBuildingForCompany(companyName);
     if (building) {
       enterScope(viewer, building);
-      if (fallbackOffice) openPanel(fallbackOffice);
     } else if (fallbackOffice) {
       flyTo(viewer, fallbackOffice.lat, fallbackOffice.lon, 30_000, 1.6);
       openPanel(fallbackOffice);
@@ -240,11 +236,10 @@ async function main() {
     if (!isScopeActive()) return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); cycle(viewer, -1); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); cycle(viewer, +1); }
-    else if (e.key === 'Escape') { e.preventDefault(); exitScope(viewer); closePanel(); }
+    else if (e.key === 'Escape') { e.preventDefault(); exitScope(viewer); }
   });
   document.getElementById('scope-exit')?.addEventListener('click', () => {
     exitScope(viewer);
-    closePanel();
   });
   document.getElementById('scope-prev')?.addEventListener('click', () => cycle(viewer, -1));
   document.getElementById('scope-next')?.addEventListener('click', () => cycle(viewer, +1));

@@ -26,6 +26,7 @@ import {
   buildingsNear,
   findOfficeForBuilding,
 } from './buildings.js';
+import { openPanel, closePanel } from './panel.js';
 
 const barEl = () => document.getElementById('scope-bar');
 const labelEl = () => document.getElementById('scope-label');
@@ -77,6 +78,7 @@ export function enterScope(viewer, building) {
   showScopeUI(building);
   showBuildingHighlight(viewer, building);
   refreshScopeBrackets(viewer, building);
+  syncPanelToBuilding(building);
 }
 
 /**
@@ -89,6 +91,7 @@ export function exitScope(viewer) {
   hideScopeUI();
   hideBuildingHighlight(viewer);
   clearScopeBrackets(viewer);
+  closePanel();
   const back = state.preScopePos || { lat: state.building.lat, lon: state.building.lon };
   const alt = Math.max(state.preScopeAlt || 500_000, 500_000);
   viewer.camera.flyTo({
@@ -114,6 +117,19 @@ export function cycle(viewer, direction) {
   showScopeUI(next);
   showBuildingHighlight(viewer, next);
   refreshScopeBrackets(viewer, next);
+  syncPanelToBuilding(next);
+}
+
+/**
+ * Open the right-side detail panel for whichever office matches the active
+ * scoped building. If no office row matches (e.g. TikTok Beijing — we have
+ * the building entry but no office in our DB for that city), close the
+ * panel instead so it's not stuck on the previous company.
+ */
+function syncPanelToBuilding(building) {
+  const office = findOfficeForBuilding(building);
+  if (office) openPanel(office);
+  else closePanel();
 }
 
 // ── private ───────────────────────────────────────────────────────────
