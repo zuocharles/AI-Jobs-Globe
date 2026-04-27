@@ -69,11 +69,14 @@ export function createGlobe(containerId) {
   scene.globe.depthTestAgainstTerrain = true;
   scene.globe.baseColor = Color.fromCssColorString('#04070d');
 
-  // Frame the camera over North America from low orbit — close enough that
-  // spikes read clearly, far enough to see most of the continent.
+  // Frame the globe roughly centred in the visible viewport. The TARGETS
+  // rail (240 px) blocks the left edge and the topbar blocks the top, so
+  // we shift the camera target SOUTH-WEST of true North-America center
+  // so the visible globe lands in the right ~70% of the screen.
+  // Pitch -85° (near top-down) keeps the globe round instead of horizoned.
   viewer.camera.setView({
-    destination: Cartesian3.fromDegrees(-100.0, 38.0, 8_500_000),
-    orientation: { heading: 0, pitch: CesiumMath.toRadians(-65), roll: 0 },
+    destination: Cartesian3.fromDegrees(-115.0, 25.0, 14_000_000),
+    orientation: { heading: 0, pitch: CesiumMath.toRadians(-85), roll: 0 },
   });
 
   // Camera limits: 200m floor (street-level on Google 3D Tiles), 30,000km

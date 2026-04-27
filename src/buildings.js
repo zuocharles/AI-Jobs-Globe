@@ -44,19 +44,22 @@ for (const b of buildings) {
 }
 
 /**
- * Find the building entry that best matches an office row from globe_data.
+ * Find the building entry that EXACTLY matches an office row from globe_data
+ * by (company, city). Returns null if there's no city-precise entry — the
+ * caller should then fall back to the office's own Nominatim-geocoded
+ * lat/lon, NOT to the company's HQ.
+ *
+ * Previous behaviour fell back to the first known building per company,
+ * which caused all 129 Amazon offices worldwide to stack on Day One Tower
+ * in Seattle. Don't do that.
+ *
  * @param {object} office  { company, location_name, ... }
  * @returns {object|null}
  */
 export function findBuildingForOffice(office) {
   if (!office) return null;
   const co = normalize(office.company);
-  // Try exact (company, city) match first.
-  const exact = byLocationKey.get(`${co}|${cityShort(office.location_name)}`);
-  if (exact) return exact;
-  // Fallback: first known building for that company (likely the HQ).
-  const list = byCompany.get(co);
-  return list && list[0] ? list[0] : null;
+  return byLocationKey.get(`${co}|${cityShort(office.location_name)}`) || null;
 }
 
 /**

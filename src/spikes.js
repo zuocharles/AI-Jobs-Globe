@@ -159,11 +159,12 @@ export function renderSpikes(viewer, offices) {
       id,
       polyline: {
         positions: [basePos, tipPos],
-        // 4px wide — visible from any zoom + reliably pickable by mouse.
-        width: 4,
+        // 7px wide — chunky enough to read as a "column" at scope distance
+        // and reliably pickable by mouse without aiming on a thin line.
+        width: 7,
         material: new PolylineGlowMaterialProperty({
           color: color.withAlpha(0.9),
-          glowPower: 0.3,
+          glowPower: 0.35,
           taperPower: 0.5,
         }),
       },
@@ -192,10 +193,10 @@ export function setHover(viewer, hoverId, officeById) {
     const prevOffice = officeById?.get(lastHoverId);
     if (prev?.polyline && prevOffice) {
       const c = tierColor(prevOffice.tier);
-      prev.polyline.width = 4;
+      prev.polyline.width = 7;
       prev.polyline.material = new PolylineGlowMaterialProperty({
         color: c.withAlpha(0.9),
-        glowPower: 0.3,
+        glowPower: 0.35,
         taperPower: 0.5,
       });
     }
@@ -204,7 +205,7 @@ export function setHover(viewer, hoverId, officeById) {
     const cur = viewer.entities.getById(hoverId);
     const curOffice = officeById?.get(hoverId);
     if (cur?.polyline && curOffice) {
-      cur.polyline.width = 7;
+      cur.polyline.width = 11;
       cur.polyline.material = new PolylineGlowMaterialProperty({
         color: Color.WHITE.withAlpha(0.95),
         glowPower: 0.5,

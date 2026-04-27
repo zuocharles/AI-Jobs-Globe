@@ -404,9 +404,12 @@ input:focus-visible {
    ============================================================ */
 #panel {
   position: fixed;
-  top: 60px;             /* slot under topbar, mirroring TARGETS rail height */
+  /* Always sit BELOW the scope-bar (scope-bar lives at top:50, ~46 px tall →
+     ends ~96; we leave 14 px breathing room). Even when scope is inactive
+     the slight extra top-gap matches the TARGETS rail's vertical centre. */
+  top: 110px;
   right: var(--space-lg);
-  bottom: 110px;         /* leave room for bottom bar */
+  bottom: 110px;
   z-index: 19;
   width: 280px;
   background: var(--bg-panel);
