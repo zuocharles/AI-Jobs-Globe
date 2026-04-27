@@ -16,31 +16,17 @@
   <!-- Cesium mounts here. Filled with the photoreal globe. -->
   <div id="cesiumContainer"></div>
 
-  <!-- HUD: top-right timestamp + camera coords -->
-  <header id="hud-top-right" class="hud-overlay">
-    <div class="hud-line">REC <span id="hud-time">----------T--:--:--Z</span></div>
-    <div class="hud-line hud-dim">
-      LAT: <span id="hud-lat">--.--</span>
-      LON: <span id="hud-lon">---.--</span>
-      ALT: <span id="hud-alt">--.-</span>
-    </div>
-  </header>
-
-  <!-- Top bar: title + search + filters -->
+  <!-- Top bar: branding row, sits flush at the top of the viewport.
+       Scope-bar slides in BELOW this when scope mode activates. -->
   <nav id="topbar">
     <div class="topbar-left">
       <span class="topbar-title">AI JOBS GLOBE</span>
       <span class="topbar-sub">// EMERGENCES LABS</span>
     </div>
     <div class="topbar-center">
-      <input
-        id="search-input"
-        type="text"
-        class="search-input"
-        placeholder="// SEARCH COMPANY"
-        autocomplete="off"
-      />
-      <ul id="search-results" class="search-results" hidden></ul>
+      <select id="scope-select" class="scope-select">
+        <option value="">// JUMP TO COMPANY (SCOPE)</option>
+      </select>
     </div>
     <div class="topbar-right">
       <button id="filter-btn" class="btn-ghost">[ FILTERS ]</button>

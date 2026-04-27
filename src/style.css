@@ -157,22 +157,19 @@ input:focus-visible {
    ============================================================ */
 #topbar {
   position: fixed;
-  top: 56px;
+  top: 0;
   left: 0;
   right: 0;
-  margin: 0 auto;
-  z-index: 20;
+  z-index: 22;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-lg);
-  width: min(1080px, calc(100vw - 64px));
   padding: var(--space-sm) var(--space-lg);
   background: var(--bg-panel);
-  border: var(--border-width) solid var(--border-default);
+  border-bottom: var(--border-width) solid var(--border-default);
   white-space: nowrap;
-  /* Prevent any overflow: at narrow widths, shrink the centre search,
-     never let buttons spill outside the panel border. */
+  /* Full-width branding bar; nothing spills regardless of viewport. */
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -219,6 +216,37 @@ input:focus-visible {
   color: var(--text-primary);
   font-size: 12px;
   letter-spacing: 0.05em;
+}
+
+/* Scope-select dropdown — replaces the old search input. Lists only
+   companies that have building data (i.e. are scopable). */
+.scope-select {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-input);
+  border: var(--border-width) solid var(--border-default);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--cyan) 50%),
+                    linear-gradient(135deg, var(--cyan) 50%, transparent 50%);
+  background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.scope-select:focus {
+  border-color: var(--cyan);
+  outline: none;
+}
+
+.scope-select option {
+  background: var(--bg-panel);
+  color: var(--text-primary);
 }
 
 .search-input::placeholder {
@@ -285,7 +313,8 @@ input:focus-visible {
    ============================================================ */
 .company-rail {
   position: fixed;
-  top: 130px;
+  /* Just below the branding topbar (~46-50 px). */
+  top: 60px;
   bottom: 110px;
   left: var(--space-lg);
   z-index: 18;
@@ -375,21 +404,24 @@ input:focus-visible {
    ============================================================ */
 #panel {
   position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 40;
-  width: 340px;
+  top: 60px;             /* slot under topbar, mirroring TARGETS rail height */
+  right: var(--space-lg);
+  bottom: 110px;         /* leave room for bottom bar */
+  z-index: 19;
+  width: 280px;
   background: var(--bg-panel);
-  border-left: var(--border-width) solid var(--border-default);
+  border: var(--border-width) solid var(--border-default);
   display: flex;
   flex-direction: column;
   transform: translateX(0);
-  transition: transform 200ms linear;
+  transition: transform 200ms linear, opacity 150ms linear;
+  opacity: 1;
 }
 
 #panel[hidden] {
-  transform: translateX(100%);
+  transform: translateX(calc(100% + var(--space-lg)));
+  opacity: 0;
+  pointer-events: none;
   display: flex !important;
 }
 
@@ -654,10 +686,11 @@ input:focus-visible {
    ============================================================ */
 .scope-bar {
   position: fixed;
-  top: var(--space-lg);
+  /* Sits BELOW the topbar (~46 px tall: 8 px padding x2 + ~30 content). */
+  top: 50px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 26;
+  z-index: 21;
   display: flex;
   align-items: stretch;
   gap: 0;

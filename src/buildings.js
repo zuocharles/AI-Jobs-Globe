@@ -98,3 +98,53 @@ export function nearestBuilding(lat, lon, maxKm = 30) {
 export function allBuildings() {
   return buildings;
 }
+
+/**
+ * All buildings sorted by longitude west→east, then latitude. This is the
+ * order Cesium scope-mode uses to cycle around the globe — clicking NEXT
+ * 500+ times eventually walks SF → LA → Vegas → Denver → Chicago → NYC →
+ * Dublin → London → Berlin → Beijing → Tokyo → wraps back. Geographic
+ * order so neighbours are always actual neighbours.
+ */
+const buildingsByLon = [...buildings].sort((a, b) => {
+  if (a.lon !== b.lon) return a.lon - b.lon;
+  return a.lat - b.lat;
+});
+
+export function allBuildingsByLongitude() {
+  return buildingsByLon;
+}
+
+/**
+ * Index of a building in the global longitude-sorted list. Returns -1 if
+ * the building isn't found (e.g. it was passed in by an external caller).
+ */
+export function buildingIndex(building) {
+  if (!building) return -1;
+  return buildingsByLon.findIndex((b) =>
+    b.lat === building.lat && b.lon === building.lon && b.company === building.company,
+  );
+}
+
+/**
+ * Top company in a city (by jobsByCompany lookup). For city-pill clicks
+ * → enter scope on the highest-jobs employer in that pill's city.
+ *
+ * @param {string} cityName  e.g. "San Francisco"
+ * @param {Map<string, number>} jobsByCompany  company name → total open jobs
+ * @returns {object|null}
+ */
+export function topBuildingInCity(cityName, jobsByCompany) {
+  const city = normalize(cityName);
+  let best = null;
+  let bestJobs = -1;
+  for (const b of buildings) {
+    if (cityShort(b.city) !== city) continue;
+    const j = jobsByCompany.get(normalize(b.company)) ?? 0;
+    if (j > bestJobs) {
+      best = b;
+      bestJobs = j;
+    }
+  }
+  return best;
+}

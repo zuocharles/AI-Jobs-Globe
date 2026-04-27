@@ -1,43 +1,45 @@
 /**
  * Scope mode — close-up auto-focus camera over a specific building.
  *
- * Inspired by Bilawal Sidhu's WORLDVIEW. When the user enters scope mode
- * (either by clicking a TARGETS company that has a known building OR by
- * zooming in below the altitude floor near a known building), the camera
- * smoothly flies to a framed close-up of that building using Google's
- * Photorealistic 3D Tiles for the actual rendering.
- *
- * In scope mode:
- *   - L/R arrow keys cycle to the next/previous nearby building (different
- *     companies, same geographic area, since cities are densely populated)
- *   - ESC or [ EXIT SCOPE ] button returns the camera to the globe view at
- *     the city's altitude
- *   - A small label shows "Company · Building Name · Address"
+ * - Cycle order is GLOBAL by longitude (SF → LA → Denver → NYC → London → Beijing → Tokyo → wraps).
+ *   Charles asked: cycling NEXT 500+ should walk the world, not bounce between two SF buildings.
+ * - Bracket markers `[ ]` are rendered ONLY in scope view, on each company
+ *   visible inside the current frame (not on every spike on the globe).
+ * - Highlight ring is enlarged + raised + depth-tested-through-walls so it
+ *   stays visible behind tall photoreal building geometry.
  */
 import {
+  Cartesian2,
   Cartesian3,
   Color,
   ColorMaterialProperty,
   HeightReference,
   HeadingPitchRange,
+  LabelStyle,
+  NearFarScalar,
+  VerticalOrigin,
   Math as CesiumMath,
 } from 'cesium';
-import { buildingsNear } from './buildings.js';
+import {
+  allBuildingsByLongitude,
+  buildingIndex,
+  buildingsNear,
+} from './buildings.js';
 
 const barEl = () => document.getElementById('scope-bar');
 const labelEl = () => document.getElementById('scope-label');
 
 const HIGHLIGHT_ID = '__scope_highlight__';
+const BRACKET_ID_PREFIX = '__scope_bracket__:';
 let highlightViewer = null;
 
 const state = {
   active: false,
   building: null,         // currently scoped building
-  neighbours: [],         // buildings near current (incl. itself, sorted)
-  index: 0,               // index of current building in `neighbours`
-  exitedAt: 0,            // timestamp of last exit (for auto-trigger debounce)
-  preScopeAlt: null,      // camera altitude when we entered scope (for exit fly-back)
-  preScopePos: null,      // camera position when we entered scope
+  index: 0,               // index in the global longitude-sorted list
+  exitedAt: 0,
+  preScopeAlt: null,
+  preScopePos: null,
 };
 
 export function isScopeActive() {
@@ -49,14 +51,11 @@ export function timeSinceLastExitMs() {
 }
 
 /**
- * Fly the camera to a framed close-up of `building` and enter scope mode.
- * @param {import('cesium').Viewer} viewer
- * @param {object} building   row from building_focus.json
+ * Enter scope mode on a specific building.
  */
 export function enterScope(viewer, building) {
   if (!building) return;
 
-  // Remember the camera state so EXIT SCOPE can fly us back out.
   if (!state.active) {
     const c = viewer.camera.positionCartographic;
     state.preScopeAlt = c.height;
@@ -68,26 +67,19 @@ export function enterScope(viewer, building) {
 
   state.active = true;
   state.building = building;
-  state.neighbours = buildingsNear(building.lat, building.lon, 50)
-    .sort((a, b) => {
-      // Stable order: by company name, then building name, so L/R is predictable.
-      const c = (a.company || '').localeCompare(b.company || '');
-      if (c !== 0) return c;
-      return (a.building_name || '').localeCompare(b.building_name || '');
-    });
-  state.index = state.neighbours.findIndex(
-    (b) => b.lat === building.lat && b.lon === building.lon && b.company === building.company,
-  );
-  if (state.index < 0) state.index = 0;
+  // Find the building's slot in the GLOBAL longitude-sorted order so
+  // L/R cycling walks the world from this anchor.
+  const idx = buildingIndex(building);
+  state.index = idx >= 0 ? idx : 0;
 
   flyToBuilding(viewer, building);
   showScopeUI(building);
   showBuildingHighlight(viewer, building);
+  refreshScopeBrackets(viewer, building);
 }
 
 /**
- * Exit scope mode: fly the camera back to the pre-scope altitude over the
- * same lat/lon (so the user lands roughly where they were before scoping).
+ * Exit scope: fly camera back to a 500km globe view + tear down scope UI.
  */
 export function exitScope(viewer) {
   if (!state.active) return;
@@ -95,9 +87,7 @@ export function exitScope(viewer) {
   state.exitedAt = Date.now();
   hideScopeUI();
   hideBuildingHighlight(viewer);
-  // Fly back to a reasonable globe view above the building. Use 500km min
-  // so we're well above the 3km auto-scope altitude threshold and the
-  // debounce can run out before we drop low again.
+  clearScopeBrackets(viewer);
   const back = state.preScopePos || { lat: state.building.lat, lon: state.building.lon };
   const alt = Math.max(state.preScopeAlt || 500_000, 500_000);
   viewer.camera.flyTo({
@@ -106,18 +96,23 @@ export function exitScope(viewer) {
     duration: 1.4,
   });
   state.building = null;
-  state.neighbours = [];
 }
 
-/** Cycle L/R to the next/previous building in the city. */
+/**
+ * Cycle to the previous (-1) or next (+1) building in the GLOBAL longitude
+ * order. Wraps so 500+ NEXT eventually walks the whole world.
+ */
 export function cycle(viewer, direction) {
-  if (!state.active || !state.neighbours.length) return;
-  state.index = (state.index + direction + state.neighbours.length) % state.neighbours.length;
-  const next = state.neighbours[state.index];
+  if (!state.active) return;
+  const all = allBuildingsByLongitude();
+  if (!all.length) return;
+  state.index = (state.index + direction + all.length) % all.length;
+  const next = all[state.index];
   state.building = next;
   flyToBuilding(viewer, next);
   showScopeUI(next);
   showBuildingHighlight(viewer, next);
+  refreshScopeBrackets(viewer, next);
 }
 
 // ── private ───────────────────────────────────────────────────────────
@@ -129,8 +124,6 @@ function flyToBuilding(viewer, building) {
   const pitch = (cam.pitch_deg ?? -30) * Math.PI / 180;
   const range = cam.range_m ?? 400;
 
-  // Use lookAt with HeadingPitchRange so the camera ends up framed around the
-  // building rather than flying THROUGH it.
   const target = Cartesian3.fromDegrees(building.lon, building.lat, altitude * 0.5);
   viewer.camera.flyToBoundingSphere(
     { center: target, radius: range / 3 },
@@ -165,14 +158,14 @@ function hideScopeUI() {
 }
 
 /**
- * Drop a small ground-clamped cyan ring at the building's lat/lon so the
- * user can see exactly which footprint is currently scoped. Reused across
- * cycles by repositioning the same entity (id = HIGHLIGHT_ID).
+ * Cyan halo at the active building. Larger (80m), raised slightly above the
+ * ground (5m) so it doesn't clip into terrain, and depth-test-disabled within
+ * 50km so it punches through wall geometry from the camera's pitched view.
  */
 function showBuildingHighlight(viewer, building) {
   highlightViewer = viewer;
   let entity = viewer.entities.getById(HIGHLIGHT_ID);
-  const position = Cartesian3.fromDegrees(building.lon, building.lat, 0);
+  const position = Cartesian3.fromDegrees(building.lon, building.lat, 5);
   if (entity) {
     entity.position = position;
     entity.show = true;
@@ -181,11 +174,13 @@ function showBuildingHighlight(viewer, building) {
       id: HIGHLIGHT_ID,
       position,
       ellipse: {
-        semiMinorAxis: 40,   // ~40 m radius spotlight at ground level
-        semiMajorAxis: 40,
-        material: new ColorMaterialProperty(Color.fromCssColorString('#00ffff').withAlpha(0.45)),
-        height: 0,
-        heightReference: HeightReference.CLAMP_TO_GROUND,
+        semiMinorAxis: 80,
+        semiMajorAxis: 80,
+        material: new ColorMaterialProperty(Color.fromCssColorString('#00ffff').withAlpha(0.55)),
+        height: 5,
+        heightReference: HeightReference.NONE,
+        outline: true,
+        outlineColor: Color.fromCssColorString('#00ffff').withAlpha(0.95),
       },
     });
   }
@@ -196,6 +191,49 @@ function hideBuildingHighlight(viewer) {
   if (!v) return;
   const entity = v.entities.getById(HIGHLIGHT_ID);
   if (entity) entity.show = false;
+}
+
+/**
+ * Render bracket markers `[ ]` for every building near the active one, so
+ * the user sees the WORLDVIEW look of "scopable targets" inside the current
+ * frame. Each bracket is independently positioned at its own building's
+ * lat/lon so they correctly anchor to the photoreal geometry.
+ */
+function refreshScopeBrackets(viewer, current) {
+  clearScopeBrackets(viewer);
+  // 5km radius around the active building — companies that share the
+  // current frame. Includes `current` itself.
+  const visible = buildingsNear(current.lat, current.lon, 5);
+  for (const b of visible) {
+    const isCurrent = b.lat === current.lat && b.lon === current.lon && b.company === current.company;
+    const color = isCurrent
+      ? Color.fromCssColorString('#fcd34d')   // amber for the active one
+      : Color.fromCssColorString('#00ffff');  // cyan for neighbours
+    viewer.entities.add({
+      id: BRACKET_ID_PREFIX + b.company + '|' + b.lat + '|' + b.lon,
+      position: Cartesian3.fromDegrees(b.lon, b.lat, 30),  // sit ~30m above ground
+      label: {
+        text: '[ ' + (b.company || '') + ' ]',
+        font: '12px "JetBrains Mono", monospace',
+        fillColor: color.withAlpha(0.95),
+        outlineColor: Color.BLACK.withAlpha(0.9),
+        outlineWidth: 2,
+        style: LabelStyle.FILL_AND_OUTLINE,
+        verticalOrigin: VerticalOrigin.BOTTOM,
+        pixelOffset: new Cartesian2(0, -4),
+        scaleByDistance: new NearFarScalar(200, 1.2, 5_000, 0.7),
+        disableDepthTestDistance: 50_000,  // visible within scope range, occluded beyond
+      },
+    });
+  }
+}
+
+function clearScopeBrackets(viewer) {
+  const v = viewer || highlightViewer;
+  if (!v) return;
+  const toRemove = v.entities.values
+    .filter((e) => typeof e.id === 'string' && e.id.startsWith(BRACKET_ID_PREFIX));
+  for (const e of toRemove) v.entities.remove(e);
 }
 
 function escapeHtml(s) {

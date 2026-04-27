@@ -2,22 +2,24 @@
  * Entry point. Order:
  *   1. Init Cesium viewer + Google 3D Tiles
  *   2. Fetch globe_data + stats from Supabase in parallel
- *   3. Render spike entities
- *   4. Wire hover, click, search, pills, HUD
+ *   3. Render spike polylines
+ *   4. Wire hover, click, scope dropdown, scope-bar buttons, pills, keys
  *   5. Animate the loading bar away
  */
 import { createGlobe, flyTo } from './globe.js';
 import {
-  Math as CesiumMath,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
 } from 'cesium';
 import { fetchGlobeData, fetchStats } from './data.js';
 import { renderSpikes, setHover } from './spikes.js';
 import { openPanel, closePanel } from './panel.js';
-import { initSearch } from './topbar.js';
 import { initCompanyRail } from './companies-rail.js';
-import { findBuildingForOffice } from './buildings.js';
+import {
+  findBuildingForOffice,
+  topBuildingInCity,
+  allBuildings,
+} from './buildings.js';
 import { enterScope, exitScope, cycle, isScopeActive } from './scope.js';
 
 // ── DOM refs ─────────────────────────────────────────────────────
@@ -26,15 +28,11 @@ const loadingBar = document.getElementById('loading-bar');
 const loadingStatus = document.getElementById('loading-status');
 const tooltipEl = document.getElementById('tooltip');
 
-// top-left HUD removed — title + counts are now only in the bottom stats bar.
-const hudTime = document.getElementById('hud-time');
-const hudLat = document.getElementById('hud-lat');
-const hudLon = document.getElementById('hud-lon');
-const hudAlt = document.getElementById('hud-alt');
-
 const statJobs = document.getElementById('stat-jobs');
 const statCompanies = document.getElementById('stat-companies');
 const statCountries = document.getElementById('stat-countries');
+
+const scopeSelect = document.getElementById('scope-select');
 
 // ── helpers ──────────────────────────────────────────────────────
 function setLoading(pct, status) {
@@ -47,7 +45,6 @@ function hideLoading() {
 }
 function fmtNum(n) { return n.toLocaleString('en-US'); }
 
-// Animate a number from 0 → target over duration ms.
 function countUp(el, target, duration = 1500) {
   const start = performance.now();
   const step = (now) => {
@@ -63,13 +60,9 @@ function countUp(el, target, duration = 1500) {
 async function main() {
   setLoading(5, 'INITIALIZING VIEWER');
   const { viewer, tilesetReady } = createGlobe('cesiumContainer');
-  // Expose for in-browser debugging only (DevTools `viewer.camera` etc.)
   if (import.meta.env.DEV) window.viewer = viewer;
 
   setLoading(20, 'QUERYING DATA STORE');
-  // Don't block the loading bar on photoreal tiles — they stream in async
-  // and can take many seconds on first paint. Spike entities + Bing fallback
-  // imagery render immediately so the user never stares at "INITIALIZING".
   tilesetReady.catch((err) => console.error('tileset failed', err));
   const [offices, stats] = await Promise.all([
     fetchGlobeData(),
@@ -82,9 +75,16 @@ async function main() {
   setLoading(70, 'PLOTTING SITES');
   const officeById = renderSpikes(viewer, offices);
 
+  // Build a (company name → total jobs) lookup once. Used by city-pill scope
+  // ("top company in SF"), and the scope-select dropdown sort.
+  const jobsByCompany = new Map();
+  for (const o of officeById.values()) {
+    const k = String(o.company || '').trim().toLowerCase();
+    jobsByCompany.set(k, (jobsByCompany.get(k) ?? 0) + (o.job_count || 0));
+  }
+
   setLoading(90, 'CALIBRATING');
 
-  // ── Bottom stats counters (HUD top-left was removed) ─────────
   countUp(statJobs, stats.jobs);
   countUp(statCompanies, stats.companies);
   countUp(statCountries, stats.countries);
@@ -134,22 +134,29 @@ async function main() {
     }
   }, ScreenSpaceEventType.LEFT_CLICK);
 
-  // ── Location pills ───────────────────────────────────────────
+  // ── Location pills → enter scope on top company in that city ────
   document.querySelectorAll('#location-pills .pill').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#location-pills .pill').forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
       const lat = parseFloat(btn.dataset.lat);
       const lon = parseFloat(btn.dataset.lon);
-      flyTo(viewer, lat, lon, 80_000, 2.0);
+      // Pull the city name from the button text — strip the "[ … ]" wrapper
+      // and trim, then ask buildings.js for the highest-jobs entry there.
+      const cityName = (btn.textContent || '').replace(/\[|\]/g, '').trim();
+      const top = topBuildingInCity(cityName, jobsByCompany);
+      if (top) {
+        enterScope(viewer, top);
+      } else {
+        // Fall back to plain fly-to if no scopable building for that city.
+        flyTo(viewer, lat, lon, 80_000, 2.0);
+      }
     });
   });
 
   // Helper: when picking an office, prefer scope-mode if we have building
-  // data; otherwise fall back to the old fly-to + side panel. When the user
-  // is already in scope mode, never yank the camera back to globe view —
-  // just update the panel (clicking a polyline you can see inside the scope
-  // shouldn't fly you OUT of it).
+  // data; fall back to the old fly-to + side panel. When already in scope,
+  // never yank the camera back to globe view — just update the panel.
   function focusOffice(office) {
     const building = findBuildingForOffice(office);
     if (building) {
@@ -163,13 +170,38 @@ async function main() {
     }
   }
 
-  // ── Search ───────────────────────────────────────────────────
-  initSearch(focusOffice, officeById);
-
   // ── Top companies quick-jump rail ────────────────────────────
   initCompanyRail(officeById, focusOffice);
 
-  // ── Scope-mode key handlers + exit button ────────────────────
+  // ── Scope-select dropdown (replaces old search input) ────────
+  // Populate with companies that have building data, sorted by total jobs
+  // desc so the most prominent employers are at the top.
+  const scopableCompanies = new Map();   // companyKey → { name, building, jobs }
+  for (const b of allBuildings()) {
+    const k = String(b.company || '').trim().toLowerCase();
+    if (!k) continue;
+    const jobs = jobsByCompany.get(k) ?? 0;
+    const cur = scopableCompanies.get(k);
+    if (!cur || (b.is_hq && !cur.building.is_hq)) {
+      // Prefer the HQ entry as the dropdown's default jump target.
+      scopableCompanies.set(k, { name: b.company, building: b, jobs });
+    } else if (cur && !cur.building.is_hq && jobs > cur.jobs) {
+      cur.jobs = jobs;
+    }
+  }
+  const sorted = [...scopableCompanies.values()].sort((a, b) => b.jobs - a.jobs);
+  const optsHtml = sorted.map((s, idx) =>
+    `<option value="${idx}">${escapeHtml(s.name)} · ${s.jobs} jobs</option>`
+  ).join('');
+  scopeSelect.insertAdjacentHTML('beforeend', optsHtml);
+  scopeSelect.addEventListener('change', () => {
+    const idx = parseInt(scopeSelect.value, 10);
+    const pick = sorted[idx];
+    if (pick) enterScope(viewer, pick.building);
+    scopeSelect.value = '';   // reset to placeholder so re-selecting the same company works
+  });
+
+  // ── Scope-mode key handlers + scope-bar buttons ──────────────
   document.addEventListener('keydown', (e) => {
     if (!isScopeActive()) return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); cycle(viewer, -1); }
@@ -183,31 +215,15 @@ async function main() {
   document.getElementById('scope-prev')?.addEventListener('click', () => cycle(viewer, -1));
   document.getElementById('scope-next')?.addEventListener('click', () => cycle(viewer, +1));
 
-  // Auto-scope (when camera drops below 3km near a known building) is
-  // disabled in this checkpoint — was firing erroneously on boot. Scope
-  // mode is currently entered manually via TARGETS-rail click. Re-enable
-  // after we can interactively debug what's flying the camera down on init.
-
-  // ── HUD live updates (timestamp + camera coords) ─────────────
-  setInterval(() => {
-    hudTime.textContent = new Date().toISOString().replace('.000', '').replace('Z', 'Z');
-  }, 1000);
-
-  viewer.camera.changed.addEventListener(updateCameraReadout);
-  viewer.camera.changed.raiseEvent?.();
-  function updateCameraReadout() {
-    const carto = viewer.camera.positionCartographic;
-    if (!carto) return;
-    hudLat.textContent = CesiumMath.toDegrees(carto.latitude).toFixed(2);
-    hudLon.textContent = CesiumMath.toDegrees(carto.longitude).toFixed(2);
-    hudAlt.textContent = (carto.height / 1000).toFixed(1) + 'km';
-  }
-  // Run once at boot
-  updateCameraReadout();
-
   // ── Done ─────────────────────────────────────────────────────
   setLoading(100, 'OPERATIONAL');
   setTimeout(hideLoading, 600);
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
 }
 
 main().catch((err) => {

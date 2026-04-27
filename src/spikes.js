@@ -3,24 +3,26 @@
  *
  * One thin glowing vertical polyline per office, height proportional to
  * log2(jobs). Tall enough to read from low orbit (~1900km max), thin enough
- * to see PAST when zoomed close. No fat cylinders, no point markers, no
- * solid heat-aura blocks — that visual experiment is over.
+ * to see PAST when zoomed close.
  *
- * Many offices share lat/lon (e.g. 50+ companies in "San Francisco, CA").
- * We cluster by rounded coords and distribute each cluster's spikes in a
- * small ring around the centre so they remain individually pickable.
+ * Anchoring rules (in order of precedence):
+ *   1. If the office has a precise building entry (top-30 + ranks 31-80
+ *      from data/building_focus*.json), the polyline base sits ON that
+ *      building's lat/lon.
+ *   2. If MULTIPLE offices land on the SAME exact (rounded) lat/lon —
+ *      either both via building data OR both via city geocode — they get
+ *      ring-distributed in a small circle around that point so each
+ *      polyline is independently clickable.
+ *   3. Otherwise, the polyline base is at the office's city geocode.
  *
- * The polyline IS the click target — Cesium picks polylines if their pixel
- * width is wide enough. We use 4px which is comfortably pickable.
+ * Bracket markers ("[ ]") are NO LONGER drawn here — Charles wants them
+ * to appear ONLY in scope view (rendered by src/scope.js), not on every
+ * spike all the time. Globe view stays clean polylines.
  */
 import {
-  Cartesian2,
   Cartesian3,
   Color,
-  LabelStyle,
-  NearFarScalar,
   PolylineGlowMaterialProperty,
-  VerticalOrigin,
 } from 'cesium';
 import { findBuildingForOffice } from './buildings.js';
 
@@ -45,8 +47,14 @@ function spikeHeightMeters(jobCount) {
   return 400_000 + Math.log2(jobCount + 1) * 150_000;
 }
 
+/** Round to ~1km precision for clustering by city. */
 function clusterKey(lat, lon) {
   return `${lat.toFixed(2)}|${lon.toFixed(2)}`;
+}
+
+/** Round to ~10m precision for "same exact building" detection. */
+function buildingKey(lat, lon) {
+  return `${lat.toFixed(4)}|${lon.toFixed(4)}`;
 }
 
 function ringOffset(index, count, radiusMeters, centreLatDeg) {
@@ -68,81 +76,104 @@ export function renderSpikes(viewer, offices) {
   const officeById = new Map();
   const entities = viewer.entities;
 
-  // 1. Bucket offices by rough city coords.
-  const clusters = new Map();
-  for (const o of offices) {
-    if (!o.lat || !o.lon || !o.job_count) continue;
-    const k = clusterKey(o.lat, o.lon);
-    const c = clusters.get(k) || { lat: o.lat, lon: o.lon, members: [] };
-    c.members.push(o);
-    clusters.set(k, c);
+  // Pass 1 — figure out the "intended" anchor for each office: building
+  // lat/lon if we have one, otherwise city lat/lon. We need this BEFORE
+  // ring-distribution so we can detect exact-coord collisions.
+  const anchored = offices
+    .filter((o) => o.lat && o.lon && o.job_count)
+    .map((o) => {
+      const building = findBuildingForOffice(o);
+      const lat = building ? building.lat : o.lat;
+      const lon = building ? building.lon : o.lon;
+      return { office: o, lat, lon, building };
+    });
+
+  // Pass 2 — bucket by ROUNDED-TO-10m coords so two companies sharing the
+  // same building (or two city-geocoded entries that happen to collide)
+  // end up in the same micro-cluster and get ring-distributed.
+  const microClusters = new Map();
+  for (const a of anchored) {
+    const k = buildingKey(a.lat, a.lon);
+    const c = microClusters.get(k) || { lat: a.lat, lon: a.lon, members: [] };
+    c.members.push(a);
+    microClusters.set(k, c);
   }
 
-  // 2. For each cluster, distribute member offices in a small ring + draw
-  //    each as a tall thin glowing polyline.
-  for (const cluster of clusters.values()) {
-    const ringRadius = Math.min(2_500 + cluster.members.length * 120, 25_000);
+  // Pass 3 — also bucket by city-rough coords for offices WITHOUT building
+  // data, since 50+ companies geocoded to "San Francisco, CA" all share the
+  // same city centre and need a wider distribution ring.
+  const cityClusters = new Map();
+  for (const a of anchored) {
+    if (a.building) continue;  // building-anchored offices use micro-cluster only
+    const k = clusterKey(a.lat, a.lon);
+    const c = cityClusters.get(k) || { lat: a.lat, lon: a.lon, members: [] };
+    c.members.push(a);
+    cityClusters.set(k, c);
+  }
 
-    cluster.members.forEach((o, idx) => {
-      // If we have a precise building entry for this office, anchor the
-      // polyline ON the actual building (e.g. 1455 Mission for OpenAI). Else
-      // fall back to the city-ring distribution that prevents pile-ups when
-      // many companies share city-level lat/lon.
-      const building = findBuildingForOffice(o);
-      let lat, lon;
-      if (building) {
-        lat = building.lat;
-        lon = building.lon;
-      } else {
-        const [dLat, dLon] = ringOffset(idx, cluster.members.length, ringRadius, cluster.lat);
-        lat = cluster.lat + dLat;
-        lon = cluster.lon + dLon;
-      }
-      const id = `office-${o.office_id}`;
-      const height = spikeHeightMeters(o.job_count);
-      const color = tierColor(o.tier);
-
-      const basePos = Cartesian3.fromDegrees(lon, lat, 0);
-      const tipPos = Cartesian3.fromDegrees(lon, lat, height);
-
-      entities.add({
-        id,
-        // Position drives the label/billboard projection — set it to the
-        // spike tip so the bracket marker floats above the polyline.
-        position: tipPos,
-        polyline: {
-          positions: [basePos, tipPos],
-          // 4px wide — visible from any zoom + reliably pickable by mouse.
-          width: 4,
-          material: new PolylineGlowMaterialProperty({
-            color: color.withAlpha(0.9),
-            glowPower: 0.3,
-            taperPower: 0.5,
-          }),
-        },
-        // Bilawal-style bracket marker — small cyan/blue/purple "[ ]" floating
-        // above each spike. Screen-space size, always visible, scales mildly
-        // by distance so it doesn't dominate the close-up scope view.
-        label: {
-          text: '[ ]',
-          font: '13px "JetBrains Mono", "Fira Code", monospace',
-          fillColor: color.withAlpha(0.95),
-          outlineColor: Color.BLACK.withAlpha(0.85),
-          outlineWidth: 2,
-          style: LabelStyle.FILL_AND_OUTLINE,
-          verticalOrigin: VerticalOrigin.BOTTOM,
-          pixelOffset: new Cartesian2(0, -4),
-          scaleByDistance: new NearFarScalar(5e3, 1.4, 5e7, 0.55),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        },
-        properties: {
-          office_id: o.office_id,
-          company: o.company,
-        },
-      });
-
-      officeById.set(id, { ...o, lat, lon });
+  // Pass 4 — render. For each office, compute its FINAL position by stacking:
+  //   (a) city-ring offset if no building (spreads city-geocode pile-ups)
+  //   (b) micro-cluster offset if same exact lat/lon as another (spreads
+  //       same-building-multi-company)
+  // Then draw the polyline.
+  for (const cityCluster of cityClusters.values()) {
+    cityCluster.members.forEach((a, idx) => {
+      const [dLat, dLon] = ringOffset(idx, cityCluster.members.length,
+        Math.min(2_500 + cityCluster.members.length * 120, 25_000),
+        cityCluster.lat);
+      a.lat = cityCluster.lat + dLat;
+      a.lon = cityCluster.lon + dLon;
     });
+  }
+  // Re-bucket micro-clusters AFTER city-ring shifts (so the building-anchored
+  // entries can still pull in any others that match their final coords).
+  const finalMicro = new Map();
+  for (const a of anchored) {
+    const k = buildingKey(a.lat, a.lon);
+    const c = finalMicro.get(k) || { lat: a.lat, lon: a.lon, members: [] };
+    c.members.push(a);
+    finalMicro.set(k, c);
+  }
+  for (const m of finalMicro.values()) {
+    if (m.members.length === 1) continue;
+    // Ring-spread same-building offices ~30 m apart so each polyline is
+    // individually clickable but they still feel "co-located."
+    m.members.forEach((a, idx) => {
+      const [dLat, dLon] = ringOffset(idx, m.members.length, 30, m.lat);
+      a.lat = m.lat + dLat;
+      a.lon = m.lon + dLon;
+    });
+  }
+
+  // Pass 5 — actually create the entities.
+  for (const a of anchored) {
+    const o = a.office;
+    const id = `office-${o.office_id}`;
+    const height = spikeHeightMeters(o.job_count);
+    const color = tierColor(o.tier);
+
+    const basePos = Cartesian3.fromDegrees(a.lon, a.lat, 0);
+    const tipPos = Cartesian3.fromDegrees(a.lon, a.lat, height);
+
+    entities.add({
+      id,
+      polyline: {
+        positions: [basePos, tipPos],
+        // 4px wide — visible from any zoom + reliably pickable by mouse.
+        width: 4,
+        material: new PolylineGlowMaterialProperty({
+          color: color.withAlpha(0.9),
+          glowPower: 0.3,
+          taperPower: 0.5,
+        }),
+      },
+      properties: {
+        office_id: o.office_id,
+        company: o.company,
+      },
+    });
+
+    officeById.set(id, { ...o, lat: a.lat, lon: a.lon });
   }
 
   return officeById;
