@@ -1,7 +1,17 @@
 # SOT / Frontend — UI/UX Layer
 
 ## Recent Changes
-- 2026-04-26 — **PIVOT to Cesium + Google Photorealistic 3D Tiles** (away from the original Three.js + NASA-texture plan). The Bilawal-WORLDVIEW visual quality wasn't reachable with Three.js; Cesium + Google's photoreal tiles is the same stack he uses. Vanilla JS + Vite kept. Added scope-mode (close-up auto-focus camera per building) using `data/building_focus.json` (53 entries for top-30 employers; rank 31-80 currently being researched in background). Replaced cylinder spikes with hybrid (always-visible polylines + cyan `[ ]` bracket markers per office). Removed top-left HUD; consolidated scope chrome into a single horizontal bar. Job panel narrowed to 340 px with text wrapping. Live deploy: https://ai-jobs-globe.vercel.app — Vercel auto-deploys from `main`.
+- 2026-04-26 — **PIVOT to Cesium + Google Photorealistic 3D Tiles** (away from the original Three.js + NASA-texture plan). The Bilawal-WORLDVIEW visual quality wasn't reachable with Three.js; Cesium + Google's photoreal tiles is the same stack he uses. Vanilla JS + Vite kept. Added scope-mode (close-up auto-focus camera per building) using `data/building_focus.json` (53 entries for top-30 employers; rank 31-80 researched in background). Replaced cylinder spikes with hybrid (always-visible polylines + cyan `[ ]` bracket markers per office). Removed top-left HUD; consolidated scope chrome into a single horizontal bar. Job panel narrowed to 340 px with text wrapping. Live deploy: https://ai-jobs-globe.vercel.app — Vercel auto-deploys from `main`.
+- 2026-04-26 (afternoon) — Cycle order in scope mode is now **GLOBAL by longitude** instead of "neighbours within 5 km". Cycling 500+ NEXT now walks the world (SF → LA → Vegas → Denver → Chicago → NYC → Dublin → London → Berlin → Beijing → Tokyo → wrap). Brackets are now **scope-only** (not rendered on the globe view). Polylines anchor to building lat/lon when available; otherwise to office's own Nominatim city geocode (no longer fall back to company HQ — fixes Amazon-Paris-stacks-on-Seattle bug). Topbar restacked: branding row at very top, scope-bar slots BELOW it when active. Search input replaced with `// JUMP TO COMPANY (SCOPE)` dropdown listing only scopable companies. Right panel restyled to match TARGETS rail (280 px, top:110, slides + fades). City pills click → enterScope on top-jobs company in that city. `bestBuildingForCompany()` ensures TARGETS clicks for EY/Ro/Deloitte/Binance always reach scope (was broken when "busiest office" city didn't match any building entry).
+- 2026-04-26 (extended) — Added `data/building_focus_extended.json` with 75 building entries for ranks 31–80 (Meta, Salesforce, Tesla, Goldman Sachs, AMD, etc. + extra SF/NYC/London/Tokyo/Beijing hubs for the SF cycle issue). `src/buildings.js` merges both files; total 127 entries / 80 unique companies / **115 of 4,682 offices = 2.5% scope-view coverage**. Re-geocoding the remaining 4,567 offices is deferred to next pass (Google Places API path queued).
+- 2026-04-26 (column ↔ polyline) — Tried real 3D `Cesium.Cylinder` for spikes; reverted because (a) sub-pixel from globe distance — invisible, and (b) cylinders are positioned at altitude 0 (sea level), so they floated above ground in inland cities (Denver +1600m, Mexico City +2200m). Polylines are screen-space pixel-width and project to screen → don't fight terrain elevation. Final: 8 px width, hover 12 px, glowPower 0.30 (less diffuse halo), height max 1,900 km.
+- 2026-04-26 (deck) — Added single-file SIGINT pitch deck at `public/pitch.html` → `https://ai-jobs-globe.vercel.app/pitch.html`. 5 slides (cover / problem / solution / demo / contact). QR codes (transparent bg, cyan modules) via `qr-creator` CDN. Keyboard nav. Same monospace + cyan + amber aesthetic as the live globe.
+- 2026-04-26 (footer) — `POWERED BY EMERGENCES LABS` in stats bar is now a clickable link to https://emergences.ai/ ; added `[ www ]` and `[ in ]` icon links to the website + LinkedIn.
+- 2026-04-27 — `startAutoSpin(viewer, isScopeActive)` rotates camera around Earth's polar axis ~0.8°/sec at home view. Stops when scope is active OR camera altitude < 10,000 km (user has zoomed in). User drag still works — the spin composes with manual rotation and resumes at the new heading after release.
+- 2026-04-27 — City pills replaced: Tokyo / Beijing / Tel Aviv had 0 scope-able offices in our DB → swapped for Mountain View / Santa Clara / Austin (each with 4–8 scope-able buildings).
+- 2026-04-27 — Brackets in scope view are now CLICKABLE → open the right panel for that office without moving the camera. Buildings without a matching office row in the DB no longer render brackets (no more clicks-to-empty-panel for TikTok Beijing / Goldman Tokyo).
+- 2026-04-27 — `scope.js` now owns the panel during scope mode via `syncPanelToBuilding()` — every `enterScope` / `cycle` / `exitScope` call automatically updates the panel content. Fixes the "panel stuck on first company while cycling" bug.
+- 2026-04-27 — `panel.js` `openPanel` got a sequence-guard so out-of-order Supabase fetch responses can't repaint the DOM with stale content. Fixes the cold-start race where the first 10–20 s of clicking through TARGETS left the panel showing the wrong company.
 
 ---
 
@@ -355,49 +365,68 @@ Single-screen app. Minimum viewport: 1280x720.
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-### Component Breakdown
+### Component Breakdown (current implementation)
 
-#### 1. Globe Viewport (`globe.js`)
-- Full-screen `<canvas>` filling the viewport behind all UI
-- Three.js scene with OrbitControls:
-  - Left-drag = rotate
-  - Scroll = zoom
-  - Right-drag = pan (disabled — keep globe centered)
-- Auto-rotation when idle (stops on interaction, resumes after 5s)
-- Zoom range: min 1.5 (full globe) → max 8.0 (city-level)
-- Camera starts aimed at North America (where most data is)
-- **Stars background**: 8,000 point particles in a large sphere around the scene
+#### 1. Globe Viewport (`src/globe.js`)
+- Full-screen `<div id="cesiumContainer">` hosting Cesium's `Viewer`
+- Default destination: lat 25, lon -115, alt 14,000 km, pitch -85°, heading 0
+- Camera limits: 200 m floor, 30,000 km ceiling, collision detection on
+- `inertiaZoom: 0` (snappy wheel zoom — no overshoot drag)
+- Google Photorealistic 3D Tiles primitive added once tileset promise resolves
+- `scene.globe.show = false` once tiles are mounted (the photoreal tiles ARE the surface)
+- Sky atmosphere: hueShift -0.05, brightnessShift -0.2, slight cyan dusk feel
+- All default Cesium widgets disabled (animation, timeline, fullscreen, geocoder, infoBox, base-layer-picker, etc.)
+- `startAutoSpin()` rotates camera around `Cartesian3.UNIT_Z` ~0.8°/sec when at home view (off in scope or zoom-in)
+- `flyHome()` resets camera to default view (wired to clicking the topbar title)
 
-#### 2. Top Bar (`topbar.js`)
-- `background: var(--bg-panel); border-bottom: 1px solid var(--border-default);`
-- Logo (left): "AI Jobs Globe" + Emergences Labs mark
-- Search (center): text input with autocomplete → matches company names, flies camera to result
-- Filter dropdown (right): checkboxes for AI type (A1/A2/A3/B), tier (1/2/3), country
-- Help button: "?" → modal explaining the visualization
+#### 2. Top Bar (`index.html` + `src/style.css`)
+- Fixed at top of viewport (top: 0, full width, z-index 22)
+- Three flex sections:
+  - **Left**: clickable "AI JOBS GLOBE" title + "// EMERGENCES LABS" subtitle. Click → `flyHome` + `exitScope` + `closePanel`.
+  - **Centre**: `<select id="scope-select">` populated with companies that have building data, sorted by total jobs. On change → `enterScope(building)`. Replaces the original search input.
+  - **Right**: `[ FILTERS ]` and `[ ? ]` ghost buttons (currently no-op placeholders)
 
-#### 3. Detail Panel (`panel.js`)
-- Slides in from right edge on spike click, 420px wide
-- `background: var(--bg-panel); border-left: 1px solid var(--border-default);`
-- Content:
-  - Company logo (128px from `/logos/`, fallback to CSS initials circle)
-  - Company name, HQ country code (`US`, `DE`, `CN`), tier label (`T1` / `T2` / `T3` in `--cyan` / `--blue` / `--purple`)
-  - Location name + job count at this specific office
-  - AI type breakdown bar (colored segments: A1/A2/A3/B)
-  - Scrollable job list (each title is a clickable link → `job_url` in new tab)
-  - "View all {company} offices" button → highlights all spikes for that company
-- Close: X button or Escape key
+#### 3. Scope Bar (`index.html` #scope-bar)
+- Fixed top:50, centre-aligned, z-index 21 — sits BELOW the topbar
+- Hidden by default; shown when `enterScope()` runs
+- Single-row layout: `[ < PREV ] [ company // building // address ] [ NEXT > ] [ EXIT SCOPE ]`
+- All 4 buttons wired to `cycle(±1)` / `exitScope()`
 
-#### 4. Stats Bar (`stats.js`)
-- Fixed bottom, `background: var(--bg-panel); border-top: 1px solid var(--border-default);`
-- Animated counters (count up from 0 on page load, 1.5s duration)
-- Shows: total jobs • companies • countries • "Powered by Emergences Labs"
-- Updates live when filters change
+#### 4. TARGETS Rail (`src/companies-rail.js`)
+- Fixed left:16, top:60, bottom:110, width:240, z-index 18
+- Lists top 30 companies by total open AI jobs (descending)
+- Each row: 20-px logo (or initials fallback) + name + cyan job count
+- Click → `focusCompany(companyName, fallbackOffice)` → `enterScope` on the company's HQ if any building data exists; else `flyTo` + open panel
 
-#### 5. Hover Tooltip (`tooltip.js`)
-- CSS2DRenderer overlay positioned at spike tip
-- Content: `[logo] Company Name — X AI jobs — Location`
-- Appears on hover with 150ms fade-in
-- Follows spike position as globe rotates
+#### 5. Detail Panel (`src/panel.js`)
+- Fixed right:16, top:110, bottom:110, z-index 19, width 280 px
+- Mirrors the TARGETS rail's silhouette on the opposite edge
+- Slides + fades on open/close (`transform: translateX` + `opacity`)
+- Owned by `scope.js` while scope mode is active — every `enterScope` / `cycle` / `exitScope` syncs panel content to match the active building's office
+- Sequence-guarded `openPanel(office)` ignores stale Supabase fetch responses
+- Content: company logo, name, location, tier badge, role count + scrollable job list with title link, AI-type chip, salary range, posted date
+
+#### 6. Stats Bar (`index.html` #bottombar)
+- Fixed bottom, contains the location pills (above) + stats line (below)
+- Stats: `<jobs> AI JOBS // <companies> COMPANIES // <countries> COUNTRIES // POWERED BY EMERGENCES LABS [www] [in]`
+- Counters animate from 0 over 1.5 s on first load (`countUp()` in main.js)
+- "POWERED BY EMERGENCES LABS" is a link to `https://emergences.ai/`; the `[ www ]` and `[ in ]` icons link to the website and company LinkedIn
+
+#### 7. Location Pills
+- 6 pills: SAN FRANCISCO / NEW YORK / LONDON / MOUNTAIN VIEW / SANTA CLARA / AUSTIN (all chosen for ≥ 4 scope-able buildings)
+- Click → `enterScope` on the top-jobs company in that city via `topBuildingInCity()`; falls back to `flyTo` if no building data
+
+#### 8. Hover Tooltip (`#tooltip`)
+- Plain DOM div absolutely positioned at the cursor on `MOUSE_MOVE` over a polyline
+- Content: company name (cyan) + location · job count · tier
+- Hidden when no polyline is hovered
+
+#### 9. Scope Mode (`src/scope.js`)
+- State: `{ active, building, index, exitedAt, preScopeAlt, preScopePos }`
+- `enterScope(building)` — flies camera using building's `camera` block (heading/pitch/range), shows scope-bar, drops cyan ground ring, renders `[ company name ]` brackets for nearby buildings WITH matching offices, opens panel for active building's office
+- `cycle(±1)` — walks `allBuildingsByLongitude()` (global, not city-local), wraps around the world
+- `exitScope()` — flies back to 500 km globe view, clears highlight + brackets, closes panel
+- Brackets at altitude 30 m above ground, screen-space sized, depth-tested up to 50 km so they hide behind globe geometry from far away
 
 ---
 
@@ -482,7 +511,7 @@ ai-jobs-globe/
 │   ├── buildings.js                 # Loads building_focus*.json; findBuildingForOffice + buildingsNear + nearestBuilding
 │   ├── scope.js                     # Scope-mode state machine: enter / exit / cycle / highlight ring
 │   ├── panel.js                     # Right-edge detail panel with job listings
-│   ├── topbar.js                    # Search input + Supabase autocomplete (slated for replacement — see Open Items)
+│   ├── topbar.js                    # ⚠ DEAD CODE — was search input; replaced by scope-select in index.html. Safe to delete.
 │   ├── companies-rail.js            # Left-rail TARGETS list (top 30 by jobs, with logos)
 │   └── style.css                    # Single CSS file, all design-system tokens + components
 └── (no shaders, no utils — Cesium handles geo math + camera animation)
@@ -490,41 +519,43 @@ ai-jobs-globe/
 
 ---
 
-## Current State (2026-04-26)
+## Current State (2026-04-27)
 
 | Layer | Status |
 |---|---|
 | Vite + Cesium + Supabase scaffold | ✅ shipped |
 | Google Photorealistic 3D Tiles loaded with Cesium Ion fallback | ✅ shipped |
-| Polyline spike per office (city-ring fallback for offices without building data) | ✅ shipped |
-| Cyan `[ ]` bracket markers per office | ✅ shipped (known issue: appearing at polyline TIP not building base — fix in flight) |
-| Hover tooltip with company / location / job count / tier | ✅ shipped |
-| Click → opens right-side detail panel with real job listings | ✅ shipped |
-| TARGETS rail (top 30 by jobs, with logos, click-to-fly) | ✅ shipped |
-| Scope mode (close-up auto-focus on photoreal building) | ✅ shipped — manual entry only |
-| `data/building_focus.json` (top 30, 53 entries) | ✅ shipped |
-| `data/building_focus_extended.json` (ranks 31-80, 75 entries) | ✅ shipped — buildings.js loader needs to merge it (1-line change) |
-| Camera limits: 200m floor, 30,000km ceiling, no inertia, collision detection | ✅ shipped |
-| HUD top-right with timestamp + camera lat/lon | ✅ shipped (slated for removal — see Open Items) |
-| EMERGENCES LABS HUD top-left | ❌ deleted (was overlapping scope bar) |
-| Bottom stats bar with animated count-up | ✅ shipped |
-| Bottom city pills (SF / NYC / London / Tokyo / Beijing / Tel Aviv) | ✅ shipped — slated for "enter scope on top company" upgrade |
-| Search bar in topbar | ✅ shipped (slated for replacement with scope-only dropdown) |
+| Polyline spikes — width 8, glow halo 0.30, height 400 km – 1,900 km by `log2(jobs+1)` | ✅ shipped |
+| Cyan `[ Company ]` bracket markers — **scope view only**, skipped if no matching office row, clickable → open panel | ✅ shipped |
+| Hover tooltip (company / location / job count / tier) | ✅ shipped |
+| Click polyline → focusOffice → enterScope (if building data) or flyTo + panel | ✅ shipped |
+| TARGETS rail (top 30 by jobs, with logos) → focusCompany → always reaches scope | ✅ shipped |
+| Scope mode — manual entry, global longitude cycle, panel auto-syncs with active building | ✅ shipped |
+| Scope dropdown in topbar listing scopable companies sorted by jobs desc | ✅ shipped |
+| Detail panel — 280 px wide, top:110 / bottom:110, slides + fades, sequence-guarded fetch | ✅ shipped |
+| Bottom location pills (SF / NYC / London / Mountain View / Santa Clara / Austin) | ✅ shipped (Tokyo/Beijing/TelAviv removed — 0 scope-able) |
+| Bottom stats bar — `<jobs> // <companies> // <countries> // POWERED BY EMERGENCES LABS [www] [in]` | ✅ shipped, links live |
+| `data/building_focus.json` + `data/building_focus_extended.json` merged in buildings.js | ✅ shipped — 127 entries, 80 unique cos, 115/4682 offices = 2.5% coverage |
+| Auto-spin at home view (~0.8°/sec, off in scope or zoom-in) | ✅ shipped |
+| Camera limits: 200m floor, 30,000km ceiling, inertiaZoom 0, collision on | ✅ shipped |
+| EMERGENCES LABS HUD top-left | ❌ removed (overlapped scope bar) |
+| HUD top-right (timestamp + lat/lon) | ❌ removed (clutter, not needed for the demo) |
+| Search bar in topbar | ❌ replaced with scope-select dropdown |
+| `src/topbar.js` (search wiring) | ⚠ dead code — safe to delete |
+| Pitch deck at `public/pitch.html` (5 slides, transparent QRs) | ✅ shipped — `https://ai-jobs-globe.vercel.app/pitch.html` |
 
 ---
 
-## Open Items (post-shipping cleanup)
+## Open Items
 
-These are items Charles flagged in the 2026-04-26 review session but aren't yet in `main`. Each links to its corresponding implementation thread.
+The 6 items from the original 2026-04-26 cleanup list are all SHIPPED. Current open items:
 
-1. **Building highlight ring invisible in scope view** — current 40 m ground-clamped ellipse gets occluded by the photoreal building geometry from the camera's typical -30° pitch. Fix: enlarge to 80–100 m + raise to 5 m above ground + `disableDepthTestDistance` so it shows through walls within scope range.
-2. **Bracket markers anchored to polyline tip (in space) instead of building base** — they appear "stuck on screen" because they're at altitude 400 km–1900 km. Fix: position them at `basePos` (the office building) with a small `pixelOffset`.
-3. **Cycle order is alphabetical (Amazon ↔ Microsoft only in SF)** — needs to sort by job count (or another meaningful priority) and the rank-31-80 data needs to be loaded so SF actually has more than 2 buildings to cycle through.
-4. **Detail panel UX** — Charles wants the right panel to behave more like a hover-triggered TARGETS-style component instead of a sticky modal. Semantics TBD.
-5. **City pills → enter scope on top-jobs company in that city** instead of `flyTo(city center)`.
-6. **Replace search bar + REC HUD with a scope-only dropdown** — scope-able companies only (those with building data).
-
-These are tracked in the corresponding thread + plan file; implementation is incremental.
+1. **Re-geocode the remaining 4,567 offices.** Coverage is only 2.5% (115 of 4,682). The `data/_research_brief_v2.md` agent only covered top 80 employers. Path forward: Google Places API script (~$15-20, ~30 min code + run), or a third agent pass with a wider brief. Without this, most polylines from "the long tail" use city-center geocoding instead of building-precise coords.
+2. **Auto-scope on zoom-in** disabled — was firing erroneously on boot. Worth re-enabling once we can debug it interactively.
+3. **`src/topbar.js`** is dead code (search input was replaced). Safe to delete.
+4. **Filter button is a no-op.** Should expose AI-type / tier / country filters per the original SOT spec, OR remove the button.
+5. **Scope-only dropdown** could carry the company logo next to the name (currently text-only).
+6. **Scope mode neighbour radius** — brackets show buildings within 5 km. Some metros (LA, London Greater Area) might want bigger radius; some dense city centres (Manhattan) might want smaller. Tune-by-zoom-level is a future polish.
 
 ---
 
